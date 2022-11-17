@@ -1,8 +1,11 @@
 <p align="center">
   <br>
-  <img width="250" src="profile/digg-logo.png" alt="digg logo">
+  <img width="550" src="profile/digg-logo.png" alt="digg logo">
   <br>
 </p>
+
+<br/>
+<br/>
 
 :ballot_box_with_check:[ Guidelines](#ballot_box_with_check-guidelines)
 • :cyclone:[ Open data](#cyclone-open-data)
