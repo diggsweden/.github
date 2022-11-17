@@ -1,6 +1,6 @@
 <p align="center">
   <br>
-  <img width="250" src="digg-logo.svg" alt="digg logo">
+  <img width="250" src="profile/digg-logo.svg" alt="digg logo">
   <br>
 </p>
 
