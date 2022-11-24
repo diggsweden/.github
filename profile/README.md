@@ -138,7 +138,7 @@ Programkod och projekt för Sweden Connect.
 Nätverket för öppna data och öppen källkod inom det offentliga.
 
 - [Offentlig kod](https://offentligkod.se)  
-A sökbar katalog över öppen källkods-projekt som används inom offentlig sektor. Bidra och förbättra.
+En sökbar katalog över öppen källkods-projekt som används inom offentlig sektor. Bidra och förbättra.
 
 ## :hammer: Verktyg
 ..
