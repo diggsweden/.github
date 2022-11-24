@@ -11,7 +11,7 @@
 :ballot_box_with_check:[ Guidelines](#ballot_box_with_check-guidelines)
 • :cyclone:[ Open data](#cyclone-open-data)
 • :performing_arts:[ Digital identity and friends](#performing_arts-digital-identity-and-friends)
-• :question:[ Friends](#computer-friends)
+• :vulcan_salute:[ Friends](#vulcan-salute-friends)
 • :construction:[ Tooling](#hammer-tooling)
 • :scroll:[ Documentation](#scroll-documentation)
 
@@ -60,7 +60,7 @@ Sweden's connection point for eIDAS and contains functions for electronic identi
 - [Sweden Connect GitHub](https://github.com/swedenconnect)  
 The Open Source software behind Sweden Connect.
 
-## :computer: Friends
+## :vulcan-salute: Friends
 - [NOSAD](https://nosad.se)   
 Network for Open Source and Data in the public sector.
 
@@ -79,7 +79,7 @@ A searchable catalogue of Open Source Software used in the public sector, with c
 :ballot_box_with_check:[ Riktlinjer](#ballot_box_with_check-riktlinjer)
 • :cyclone:[ Öppna data](#cyclone-öppna-data)
 • :performing_arts:[ Digital identitet](#performing_arts-digital-identitet)
-• :question:[ Vänner](#computer-vänner)
+• :vulcan-salute:[ Vänner](#vulcan-salute-vänner)
 • :construction:[ Verktyg](#hammer-verktyg)
 • :scroll:[ Dokumentation](#scroll-dokumentation)
 
@@ -125,7 +125,7 @@ För dig som vill ansluta e-tjänster för att få tillgång till inloggning med
 - [Sweden Connect GitHub](https://github.com/swedenconnect)  
 Programkod och projekt för Sweden Connect.
 
-## :computer: Vänner
+## :vulcan-salute: Vänner
 - [NOSAD](https://nosad.se)   
 Nätverket för öppna data och öppen källkod inom det offentliga.
 
