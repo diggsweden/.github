@@ -107,7 +107,7 @@ DIGG:s huvudsakliga uppgifter är att:
 
     Samordna och stödja den förvaltningsgemensamma digitaliseringen.
     Ansvara för den förvaltningsgemensamma digitala infrastrukturen.
-    Bistå regeringen med underlag för den offentliga förvaltningen och av samhällets digitalisering. I detta ingår att följa upp, analysera och beskriva den utvecklingen.
+    Bistå regeringen med underlag för den offentliga förvaltningen och av samhällets digitalisering. 
 
 Intressanta DIGG-relaterade projekt och länkar:
 
