@@ -11,8 +11,8 @@
 :ballot_box_with_check:[ Guidelines](#ballot_box_with_check-guidelines)
 • :cyclone:[ Open data](#cyclone-open-data)
 • :performing_arts:[ Digital identity and friends](#performing_arts-digital-identity-and-friends)
-• :vulcan_salute:[ Friends](#vulcan-salute-friends)
-• :construction:[ Tooling](#hammer-tooling)
+• :vulcan_salute:[ Friends](#vulcan_salute-friends)
+• :hammer:[ Tooling](#hammer-tooling)
 • :scroll:[ Documentation](#scroll-documentation)
 
 # DIGG Sweden
@@ -60,7 +60,7 @@ Sweden's connection point for eIDAS and contains functions for electronic identi
 - [Sweden Connect GitHub](https://github.com/swedenconnect)  
 The Open Source software behind Sweden Connect.
 
-## :vulcan-salute: Friends
+## :vulcan_salute: Friends
 - [NOSAD](https://nosad.se)   
 Network for Open Source and Data in the public sector.
 
@@ -87,8 +87,8 @@ A searchable catalogue of Open Source Software used in the public sector, with c
 :ballot_box_with_check:[ Riktlinjer](#ballot_box_with_check-riktlinjer)
 • :cyclone:[ Öppna data](#cyclone-öppna-data)
 • :performing_arts:[ Digital identitet](#performing_arts-digital-identitet)
-• :vulcan-salute:[ Vänner](#vulcan-salute-vänner)
-• :construction:[ Verktyg](#hammer-verktyg)
+• :vulcan_salute:[ Vänner](#vulcan_salute-vänner)
+• :hammer:[ Verktyg](#hammer-verktyg)
 • :scroll:[ Dokumentation](#scroll-dokumentation)
 
 # DIGG Sweden
@@ -133,7 +133,7 @@ För dig som vill ansluta e-tjänster för att få tillgång till inloggning med
 - [Sweden Connect GitHub](https://github.com/swedenconnect)  
 Programkod och projekt för Sweden Connect.
 
-## :vulcan-salute: Vänner
+## :vulcan_salute: Vänner
 - [NOSAD](https://nosad.se)   
 Nätverket för öppna data och öppen källkod inom det offentliga.
 
