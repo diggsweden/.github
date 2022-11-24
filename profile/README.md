@@ -74,7 +74,15 @@ A searchable catalogue of Open Source Software used in the public sector, with c
 ..
 
 ---
----
+<p align="center">
+  <br>
+  <img width="550" src="profile/digg-logo.png" alt="digg logo">
+  <br>
+</p>
+
+
+<br/>
+<br/>
 
 :ballot_box_with_check:[ Riktlinjer](#ballot_box_with_check-riktlinjer)
 • :cyclone:[ Öppna data](#cyclone-öppna-data)
