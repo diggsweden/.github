@@ -8,14 +8,12 @@
 <br/>
 <br/>
 
-<p align="center">
 :ballot_box_with_check:[ Guidelines](#ballot_box_with_check-guidelines)
 • :cyclone:[ Open data](#cyclone-open-data)
 • :performing_arts:[ Digital identity and friends](#performing_arts-digital-identity-and-friends)
 • :vulcan_salute:[ Friends](#vulcan_salute-friends)
 • :hammer:[ Tooling](#hammer-tooling)
 • :scroll:[ Documentation](#scroll-documentation)
-</p>
 
 # DIGG Sweden
 
@@ -87,14 +85,12 @@ A searchable catalogue of Open Source Software used in the public sector, with c
 <br/>
 
 
-<p align="center">
 :ballot_box_with_check:[ Riktlinjer](#ballot_box_with_check-riktlinjer)
 • :cyclone:[ Öppna data](#cyclone-öppna-data)
 • :performing_arts:[ Digital identitet](#performing_arts-digital-identitet)
 • :vulcan_salute:[ Vänner](#vulcan_salute-vänner)
 • :hammer:[ Verktyg](#hammer-verktyg)
 • :scroll:[ Dokumentation](#scroll-dokumentation)
-</p>
 
 
 # DIGG Sweden
