@@ -19,36 +19,31 @@
 
 Welcome to DIGG's GitHub. Here you can find our Open Source projects :heart:
 
+The digitalisation of Sweden is necessary to create a sustainable welfare society that meets people's needs – today and in the future. This work must be intensified. That is the purpose of [DIGG](https://www.digg.se/en/about-us).
+Along with the entire public administration, we strive to make the transition a reality, and benefit all.
+
 If you came for the code - to use, contribute, view and so on - you are at the right spot!
 
-If you are looking for Open Data and deeper community discussions about open resources in the public sector, please see the [The Swedish Dataportal](https://www.dataportal.se/).
+If you are looking for Open Data and deeper community discussions about open resources in the public sector, please see the [The Swedish Dataportal](https://www.dataportal.se/en).
 
 ## Who are DIGG Sweden?
 
 DIGG is Sweden's [The Agency for Digital Government](https://www.digg.se/en)
-
-Our mission:
-
-    We coordinate and support the digitalisation of public administration.
-    We be responsible for Sweden's digital infrastructure.
-    We follow up and analyse the digitalisation of society.
-    We help the government make well-informed decisions.
-
 
 
 A list of interesting DIGG and friends projects:
 
 ## :ballot_box_with_check: Guidelines 
 
-- [Guidelines about Open Source](https://www.digg.se/analys-och-uppfoljning/publikationer/publikationer/2022-09-27-anskaffning-utveckling-och-publicering-av-oppen-programvara-policy-och-riktlinjer)    
+- [Guidelines about Open Source (in Swedish only)](https://www.digg.se/analys-och-uppfoljning/publikationer/publikationer/2022-09-27-anskaffning-utveckling-och-publicering-av-oppen-programvara-policy-och-riktlinjer)    
 DIGG's guidelines about Open Source software.
 
-- [Recommendations about Open licenses, Open Data and more](https://www.digg.se/kunskap-och-stod/oppna-och-delade-data/offentliga-aktorer)    
+- [Recommendations about Open licenses, Open Data and more (in Swedish only)](https://www.digg.se/kunskap-och-stod/oppna-och-delade-data/offentliga-aktorer)    
 DIGG's recommendations about licenses for open resources.
 
 ## :cyclone: Open Data
 
-- [The Swedish Dataportal](https://www.dataportal.se/)    
+- [The Swedish Dataportal](https://www.dataportal.se/en)    
 Open Data and Community Discussion portal regarding all things open.
 
 
@@ -61,10 +56,10 @@ Sweden's connection point for eIDAS and contains functions for electronic identi
 The Open Source software behind Sweden Connect.
 
 ## :vulcan_salute: Friends
-- [NOSAD](https://nosad.se)   
+- [NOSAD (in Swedish only)](https://nosad.se)   
 Network for Open Source and Data in the public sector.
 
-- [Offentlig kod](https://offentligkod.se)  
+- [Offentlig kod (in Swedish only)](https://offentligkod.se)  
 A searchable catalogue of Open Source Software used in the public sector, with contribution possibilities.
 
 ## :hammer: Tooling
@@ -97,19 +92,13 @@ A searchable catalogue of Open Source Software used in the public sector, with c
 
 Välkommen till DIGG's GitHub. Här hittar du våra projekt som är öppen källkod :heart:.
 
+För att skapa ett hållbart välfärdssamhälle behöver digitaliseringen av Sverige intensifieras. Därför finns [DIGG](https://www.digg.se/om-oss). 
+Tillsammans med hela den offentliga förvaltningen arbetar vi för att omställningen ska bli verklighet, och till nytta för alla.
+
 Är du ute efter själva programkoden - att använda, bidra, granska - så har du kommit rätt!
 
 Om du är intresserad av öppna data, och diskussioner kring öppna resurser i offentlig sektor, gå vidare till [Sveriges dataportal](https://www.dataportal.se/).
 
-## Vilka är DIGG?
-
-DIGG är [Myndigheten för Digital förvaltning](https://www.digg.se).
-
-DIGG:s huvudsakliga uppgifter är att:
-
-    Samordna och stödja den förvaltningsgemensamma digitaliseringen.
-    Ansvara för den förvaltningsgemensamma digitala infrastrukturen.
-    Bistå regeringen med underlag för den offentliga förvaltningen och av samhällets digitalisering. 
 
 Intressanta DIGG-relaterade projekt och länkar:
 
