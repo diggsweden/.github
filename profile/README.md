@@ -26,10 +26,6 @@ If you came for the code - to use, contribute, view and so on - you are at the r
 
 If you are looking for Open Data and deeper community discussions about open resources in the public sector, please see the [The Swedish Dataportal](https://www.dataportal.se/en).
 
-## Who are DIGG Sweden?
-
-DIGG is Sweden's [The Agency for Digital Government](https://www.digg.se/en)
-
 
 A list of interesting DIGG and friends projects:
 
