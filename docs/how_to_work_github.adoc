@@ -1,0 +1,306 @@
+= Hur vi jobbar med Öppen Källkod på GitHub
+Digg Open Source Guild <ospo@digg.se>
+v0.1.7, {docdatetime}
+:description: A guide for working on Digg's GitHub spaces
+:toc:
+:toclevels: 4
+
+NOTE: Är du aktiv på Digg's GitHub-ytor, läs igenom detta dokument, och <<relevant_links,kompletterande länkar>>.
+
+== Inledning
+
+En översikt av hur Digg jobbar på samarbetsytorna för öppen källkod.
+footnote:[Detta dokument har specifikt https://github.com/diggsweden[DiggSweden] i fokus]
+
+Digg har idag två externa samarbetsytor för för öppen källkod och öppna samarbeten på GitHub.
+Där samverkar man kring diverse projekt, både med externa konsulter, bidragsgivare, och Digg-anställda.
+Huvudsakligen ligger där programmeringstunga-projekt, men det förekommer även rena dokumentations- och specifikations-projekt.
+
+[[samarbetsytor]]
+.Huvudsakliga samarbetsytor
+[cols="1,1,1,1,1"]
+|===
+| GitHub-Organisation | Samarbetsyta | Syfte | Huvudansvariga | Not
+
+| DiggSweden
+| https://github.com/diggsweden[GitHub]
+| Release av egna lösningar, samarbete med andra
+| ospo@digg.se (Digg OSPO/Open Source Guild) +
+  GitHub-användare med rollen Owner
+| Rollen Owner: Ej extern info.
+
+| SwedenConnect
+| https://github.com/swedenconnect[GitHub]
+| De flesta SwedenConnect-relaterade projekt.
+| GitHub-användare med rollen Owner
+| Rollen Owner: Ej extern info.
+
+|===
+
+== GitHub-konton
+
+Du behöver till att börja med skaffa ett https://github.com/signup[GitHub-konto].
+
+* Tänk på att ditt konto är i viss mån offentligt och kan komma att indirekt också kopplas med Digg
+* Du väljer själv om du vill lägga till din <namn@digg.se>-epost-adress till ett befintlig GitHub-konto, eller skapa ett helt nytt GitHub-konto för din Digg-personlighet.
+Enklast brukar vara att bara lägga till <namn@digg.se> till ditt befintliga kontos epost-adresser.
+* Oavsett vad ditt användarnamn är, se till att också fylla i ditt riktiga namn (GitHub->Edit Profile->Name).
+
+=== Säkerhet för ditt GitHub-konto
+
+* Aktivera 2FA för ditt konto: https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa[Aktivera tvåfaktors autentisering]
+* Ta en säkerhetskopia på återställningskoderna som du kan hämta från kontot för din 2FA, och förvara på säkert ställe.
+
+Vidare, om du ska bidra till projekten med Pull Requests och annat:
+
+* Genomför inställningarna för att signera dina commits: https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification[Signera commits]
+* Aktivera  "Vigilant Mode" för din användare: https://docs.github.com/en/authentication/managing-commit-signature-verification/displaying-verification-statuses-for-all-of-your-commits[Aktivera 'Vigilant Mode' - visar signerade commits som verifierade]
+
+TO-DO: image of signing
+
+=== Att lägga till en användare till DiggSweden
+
+Du behöver sedan gå med i Digg's GitHub-organisation, och bli tillagd i ett eller flera Team.
+
+Det finns flera olika möjliga vägar in i organisationen:
+
+* Du skickar ett mail till <ospo@digg.se>. Ange syfte och tänkta behov.
+* Du får en inbjudan till ett team för ett projekt eller tillhörighet t.ex. ett konsultteam, av någon admin/owner på DiggSweden.
+
+== Rollerna i vår GitHub-organisation
+
+Det underlättar användandet om du har grundläggande kunskap om rollerna vi använder på GitHub.
+
+* Owner - superadministratörer för organisationen i sig.
+* Member - alla inbjudna till organisationen. Ska läggas i olika Team för tillgång til specifika repos/projekt.
+* External Collaborator - externa användare som inte är inbjudna till organisationen men ges enskilda rättigheter.
+
+NOTE: En GitHub-Organisation kan ha fler än tre roller, se https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/roles-in-an-organization[organisationsroller]
+
+=== Member-rollen
+
+`Member` har i sin tur en mängd finare roller som styr vad de kan göra i ett repository.
+Exempel är `admin, maintain, read` https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization[Se repository-roller].
+
+==== Admin-rollen och dess ansvar
+
+Varje GitHub-team ska ha en eller flera användare i rollen som Admin.
+En Admin förväntas ha övergripande översikt om sitt Team och dess projekt och:
+
+* ta ansvar för att agera eller delegera ansvaret för sitt teams/s:
+  - säkerhetsvarningar
+  - ta bort användare ur teamet som är inaktiva
+* ta ansvar för att projekten arbetar i övrigt för god projekthälsa genom att följa rekommenderade konventioner, (se <<relevant_links,kompletterande länkar>>).
+* vara teamets/ens första kontaktyta med <<samarbetsytor,Owners>>  för adminstrativa spörsmål vid behov.
+
+=== External Collaborator-rollen
+
+Undvik i första hand denna roll. Istället för att lägga till 'External Collaborator' så rekommenderas det numer att man vid samarbeten lägger användare i ett GitHub-team, nytt eller befintligt. På så vis regleras behörigheter till repositories för en grupp användare, de i teamet, istället för hantering av behörigheter riktade mot en specifik användare.
+Det ger en mycket bättre separation och översikt över användaren och vilka rättigheter användaren har.
+
+== Checklista, mallprojekt och rekommendationer
+
+=== Hjälpmaterial, rekommendationer, checklista
+
+Digg har tagit fram hjälpmaterial för Öppen Källkod-projekt, i form av interna riktlinjer, checklista samt mall-hjälp, se <<relevant_links,kompletterande länkar>>.
+
+=== Basmall för GitHub-organisationen DiggSweden
+
+Ett projekt som läggs på DiggSweden's yta kommer att, som förvald standard erhålla generella GitHub-mallar för felrapporter, nya funktioner/förändringar och Pull Requests.
+Anpassa dessa efter projektens behov.
+Vad som är förvalt kan du se i <<relevant_links,Digg's bas för organisationen DiggSweden, under kompletterande länkar>>.
+
+== Förvaltning och livscykelhantering
+
+=== Ärende/Issues-hantering
+
+* Ansvar för ärende/issue-hantering i första hand.
+
+Teamet som äger ett repository tar i första hand ansvar för att svara på ärenden/issues.
+Hur team lägger upp det i detalj är upp till Teamet.
+
+* Att svara på ärenden/issues
+
+I grund och botten är vår GitHub och projektytor avseeda för projektfokuserade ärenden.
+Vi försöker styra undan diskussioner som inte rör projektet direkt till andra ytor (se <<other_links,Dataportalens Communityforum>>).
+Tveka inte att vidarebeforda frågor till exempelvis Digg's kundtjänst.
+Exempel kan vara frågor som inte är av teknisk karaktär, eller som inte rör projektet mer specifikt.
+
+TIP: Vi är en myndighet, och förväntas av allmänheten besvara vänligt, korrekt och inom rimlig tid. Rekommenderad svarstid för ett ärende är fem dagar.
+
+=== Hantera inaktiva medlemmar
+
+* Se till att inaktiva medarbetare lämnar GitHub-organisationen (Admin-rollen för teamet håller översiktlig koll).
+
+* Inaktiv användare inom GitHub-organisationen rensas automatiskt efter ett år. TO-DO
+
+=== Arkivering av projekt
+
+* Om projektet inte är aktivt, det vill säga, har ingen förvaltare längre, så SKA det arkiveras, och detta BÖR helst tydliggöras i dess README.
+
+== Sårbarhet och säkerhet
+
+GitHub bjuder på en mängd verktyg för automatiserade sårbarhet- och säkerhetsgenomsökningar, inklusive beroende-kontroll och statisk kodanalys.
+Vi aktiverar i princip allt som blir tillgängligt inom detta område för GitHub.
+Se <<default_settings,Standardinställningar>> för vilka funktioner som är aktiverade.
+Förinställningarna kan sedan behöva finjusteras av teamet.
+
+TO-DO: Add image of GitHub Security tab
+
+== Publicering av externa bibliotek och container-avbildningar
+
+WARNING: Work-in-progress, hoppa över detta stycke (Kommer avhandla de publiceringsställen vi redan har publiceringskonton på
+, i slutändan kanske eget doc, publicering.
+Ett migrationsarbete pågår här.
+
+=== Externa biblioteksytor
+
+==== NPM
+
+
+
+==== Maven Central
+
+==== GitHub Registry
+
+<TO-DO> detta ska vi också reda i , chainguard med mera att rekommendera för licens o säkerhetskompatibla image-avbildningar.
+* Om du publicerar container-externa images, föredra små säkra bascontainrar som distroless, Wolfi.
+
+...
+
+== Länkar
+
+[[relevant_links]]
+=== Kompletterande länkar
+
+* https://www.digg.se/download/18.72c5e64d183579af3fd1b6c/1664286148293/riktlinjer-for-utveckling-och-publicering-av-oppen-programvara.pdf[Allmänna riktlinjer för Öppen Källkod på Digg]
+* https://github.com/diggsweden/open-source-project-template[Digg’s hjälpmallprojekt för öppen källkod-projekt]
+* https://github.com/diggsweden/open-source-project-template[Digg’s Checklista för öppen källkod-projekt]
+* https://github.com/diggsweden/.github[Digg’s bas för organisationen DiggSweden]
+
+[[other_links]]
+=== Övriga länkar
+* https://community.dataportal.se/[Dataportalens Communityforum - Öppna Data och Öppen Källkod-diskussioner för det offentliga]
+
+
+[appendix]
+== Vanliga frågor (FAQ)
+
+=== Team
+
+* Hur skapar jag ett GitHub-team?
++
+Be någon som har Owner-rollen på GitHub, eller kontakta ospo@digg.se för att skapa ett GitHub-team.
+
+* Hur ska team delas in - per produkt, konsultgrupp eller vad?
++
+Befintliga team delas ibland upp på ansvarsområde, ibland på konsulttillhörighet, ibland projekt. Avgör vad som passar er bäst.
+En 'Member' kan vara medlem av många team.
+
+* Jag vill forka ett externt projekt, ska jag göra det under Digg's GitHub-organisation eller under min privata användare?
++
+I de flesta fall så säger vi nej på att lägga forken under Digg-organisationen, forka under din användare i första hand. 
+Vi vill inte att organisationen DiggSweden ska ses som att man har tagit på sig att förvalta en fork av något projekt.
+Forkar som ligger under organisationen och inte har diskuteras om i förväg om kommer att arkiveras.
+
+=== Schrems II, GDPR
+
+* Får vi använda GitHub på Digg? Det är ju en amerikansk molntjänst. Tänker GDPR, Schrems II
++
+Tillsvidare används GitHub på Digg som komplement, vilket också nämns i Digg's Riktlinjer för Öppen Källkod.
+Det finns dock en pågående strävan för att hitta andra lösningar.
+Detta då till exempel https://www.esamverka.se/download/18.43a3add4188b9f2345a2ffd0/1687333877690/ES2023-10%20Adekvansbeslut%20och%20ny%20sekretessbrytande%20best%C3%A4mmelse%20-%20%C3%84r%20det%20gr%C3%B6nt%20ljus.pdf[Adekvansbeslutet må underlätta informationsöverföring, men ej löser övriga risker (länk till eSamverkans sammanfattning)]
+
+=== Bidrag
+* Får vi bidra med felrättningar och issues uppströms?
++
+Vi har inte arbetat fram en formell guide och formen för detta än, det ligger på framtida agenda.
+Notera att detta redan sker i praktiken - Digg bidrar redan aktivt till Öppen Källkod och data genom upphandlingar och samarbeten med externa partners där vi uppmuntrar och kräver Öppen Källlkod. Bidrag nämns i våra interna riktlinjer.
+
+=== Privata och publika projekt
+* Varför har vi (eller extern samarbetspartner) privata projekt på GitHub, är det inte en plattform för Öppen Källkod?
++
+Det finns flera skäl till att projekt bör vara privata på GitHub under en fas.
+Ägarskapet inte är klart, man har inte bestämt om ett äldre projekt från annan organisation ska bli Öppen Källkod eller ej, man
+behöver kvalitetkontrollera projektet innan det blir Öppen Källkod och så vidare.
+Premissen är dock att privata projekt ska samarbetas om på lämpligare (stängda, säkrare) ytor, och endast i undtagsfall och medvetet val, på GitHub.
+
+* Jag har bara fler frågor nu. Var ska jag vända mig?
+
+Maila i första hand <ospo@digg.se>, i andra hand kontakta någon av <<owners,Owners>> så kan de hjälpa dig vidare.
+
+[appendix]
+== Terminologi
+
+.Terminologi i detta dokument
+[cols="1,1"]
+|===
+| Begrepp | I detta dokument avses
+
+| Arkivering | Användning av ett projekts Arkivering-funktionen på GitHub. Det betyder att projektet är fortsatt öppet och åtkomligt på GitHub, samt berättar för omvärlden att det inte har någon aktiv förvaltning.
+| Besvara ett ärende | att besvara en Issue eller Pull Request. Minimalt bekräftas att ärendet är läst.
+(Det kan också i sig innebära lösning eller avslut i samma bekräftelse).
+| GitHub-Organisation | En samarbetsyta på GitHub kallas Organisation, och en Organisation innehåller en mängd repositories.
+| Inaktiva användare | Medarbetare (anställda, konsulter) som slutat, uppdraget upphört, inte är eller planerar vara aktiva på Digg's GitHub över längre tid.
+| Projekt | Övergripande samlingsnamn som kan implicera flera kodrepositories eller GitHub-team. +
+ +
+Påhittat exempel: +
+Projektet covidbevis, består av teamen 'digg-interna', 'konsultTeam2', och de har tillgång till repositories covidgui, covid-sad
+| Team | Här konstruktionen GitHub-team som kan ses som virtuella team.
+| Samarbetsytor för öppen källkod | Idag, våra två ytor på GitHub.
+Dokumentet berör ej interna, icke-publika ytor.
+| Workflows | GitHub's benämning på CI/CD-Pipelines.
+En rad konfigurerbara processer för att bygga, autotesta, deploya projekt som körs på GitHub's servar, så kallade Runners.
+|===
+
+
+[appendix]
+[[default_settings]]
+== Översikt av förvalda GitHub-inställningar (DiggSweden)
+
+GitHub har flera bra funktioner för säkerhet, adminstration och förvaltning, och många av dessa måste aktiveras.
+Detta avsnitt beskriver en del av de inställningar som är aktiverade.
+
+Syftet är inte att dokumentera alla detaljinställningar i tabellen, men att ge en översikt så att användare förstår vilka möjligheter de har i sina projekt.
+
+[cols="1,1,1"]
+|===
+| Namn | Inställning | Effekt
+
+| https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/setting-base-permissions-for-an-organization[Basepermission]
+| No Permission
+| En nytillagd medlem i organisationen har *inga* rättigheter. Det innebär att hen inte ser andra projekt, team, privata repositories etc., utan bara det som är publikt, eller för de team som hen blir tillagd i. https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/setting-base-permissions-for-an-organization#setting-base-permissions[Basrättigheter]
+
+| https://docs.github.com/en/organizations/managing-organization-settings/managing-the-forking-policy-for-your-organization[Forking and creation of private repositorys]
+| Aktiverad
+| En användare kan skapa samt forka privata repositories.
+
+| https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks#about-workflow-runs-from-public-forks[Require approval for first-time contributors to run GitHub Actions]
+| (activated by default)
+| En nytillkommen bidragsgivare i ett repository kräver ett explicit godkännande vid första bidraget för att få starta ett Workflow.
+
+| https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-the-dependency-graph[Dependency Graph]
+| Aktiverad
+| Beroendeanalyser för repositories.
+
+| https://docs.github.com/en/code-security/getting-started/dependabot-quickstart-guide[Dependabot]
+| Aktiverad
+| Skapar automatiska Pull Request för sårbarheter samt utdaterade beroenden. Finjustera inställningar för ditt projekt.
+
+| https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning[Secrets Scanning]
+| Aktiverad
+| Genomsöker repositories efter nycklar, lösenord etc.
+
+| https://docs.github.com/en/code-security/code-scanning/enabling-code-scanning/configuring-default-setup-for-code-scanning-at-scale[Code Scanning]
+| Aktiverad
+| Genomsöker kodbasen med SAST-analys. CODEQL. Finjustera inställningar för dina repositories.
+
+
+| Standard-bas för organisationen https://github.com/diggsweden/.github[DiggSwedens Organisations-basrepo]
+| Aktiverad
+| Ett mall-projekt som innehåller projekt-förinställningar för GitHub-organisationen "om projektet inte anger något annat". Se dess README för vad det täcker. Det är högst möjligt att du vill finjustera dina projekt om andra behov.
+
+
+|===
+
+CAUTION: Flera av de beskrivna inställningarna gäller inte om du använder privata repositories, då det kräver en betalplan för GitHub.

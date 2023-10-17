@@ -8,7 +8,7 @@ SPDX-License-Identifier: CC0-1.0
 
 This is the standard Default .github repo for DiggSweden. It contains Pull Request-, Issue-templates and Community Health-files that will be applied for all projects in the whole GitHub-organisation "should the projects not override them with something more adjusted".
 
-It also contains the front presentationtext.
+It also contains the front presentation text.
 
 Contents:
 
@@ -16,6 +16,7 @@ Contents:
 - CODE_OF_CONDUCT.md (Contributor Covenant)
 - Templates for the Pull Requests, Bug and Feature Requests
 - profile/README.md (GitHub-organisation fronttext)
+- docs/how_to_work_github.adoc (A document describing how to work on Digg's GitHub)
 
 Note that these files are mostly taken from the general [Open Source Project Template-project](https://github.com/diggsweden/open-source-project-template) and any Issues should most likely go there directly.
 
