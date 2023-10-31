@@ -1,11 +1,11 @@
 = Hur vi jobbar med Öppen Källkod på GitHub
 Digg Open Source Guild <ospo@digg.se>
-v0.1.7, {docdatetime}
+v0.1.8, {docdatetime}
 :description: A guide for working on Digg's GitHub spaces
 :toc:
 :toclevels: 4
 
-NOTE: Är du aktiv på Digg's GitHub-ytor, läs igenom detta dokument, och <<relevant_links,kompletterande länkar>>.
+NOTE: Är du aktiv på Digg's GitHub-ytor, läs igenom detta dokument, och <<#kompletterande-länkar>>.
 
 == Inledning
 
@@ -16,8 +16,7 @@ Digg har idag två externa samarbetsytor för för öppen källkod och öppna sa
 Där samverkar man kring diverse projekt, både med externa konsulter, bidragsgivare, och Digg-anställda.
 Huvudsakligen ligger där programmeringstunga-projekt, men det förekommer även rena dokumentations- och specifikations-projekt.
 
-[[samarbetsytor]]
-.Huvudsakliga samarbetsytor
+.Samarbetsytor
 [cols="1,1,1,1,1"]
 |===
 | GitHub-Organisation | Samarbetsyta | Syfte | Huvudansvariga | Not
@@ -48,7 +47,7 @@ Enklast brukar vara att bara lägga till <namn@digg.se> till ditt befintliga kon
 
 === Säkerhet för ditt GitHub-konto
 
-* Aktivera 2FA för ditt konto: https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa[Aktivera tvåfaktors autentisering]
+* Aktivera 2FA för ditt konto: https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa[Aktivera tvåfaktors-autentisering]
 * Ta en säkerhetskopia på återställningskoderna som du kan hämta från kontot för din 2FA, och förvara på säkert ställe.
 
 Vidare, om du ska bidra till projekten med Pull Requests och annat:
@@ -90,8 +89,8 @@ En Admin förväntas ha övergripande översikt om sitt Team och dess projekt oc
 * ta ansvar för att agera eller delegera ansvaret för sitt teams/s:
   - säkerhetsvarningar
   - ta bort användare ur teamet som är inaktiva
-* ta ansvar för att projekten arbetar i övrigt för god projekthälsa genom att följa rekommenderade konventioner, (se <<relevant_links,kompletterande länkar>>).
-* vara teamets/ens första kontaktyta med <<samarbetsytor,Owners>>  för adminstrativa spörsmål vid behov.
+* ta ansvar för att projekten arbetar i övrigt för god projekthälsa genom att följa rekommenderade konventioner, (se <<#kompletterande-länkar>>).
+* vara teamets/ens första kontaktyta med <<#inledning,Owners>>  för adminstrativa spörsmål vid behov.
 
 === External Collaborator-rollen
 
@@ -102,13 +101,13 @@ Det ger en mycket bättre separation och översikt över användaren och vilka r
 
 === Hjälpmaterial, rekommendationer, checklista
 
-Digg har tagit fram hjälpmaterial för Öppen Källkod-projekt, i form av interna riktlinjer, checklista samt mall-hjälp, se <<relevant_links,kompletterande länkar>>.
+Digg har tagit fram hjälpmaterial för Öppen Källkod-projekt, i form av interna riktlinjer, checklista samt mall-hjälp, se <<#kompletterande-länkar>>.
 
 === Basmall för GitHub-organisationen DiggSweden
 
 Ett projekt som läggs på DiggSweden's yta kommer att, som förvald standard erhålla generella GitHub-mallar för felrapporter, nya funktioner/förändringar och Pull Requests.
 Anpassa dessa efter projektens behov.
-Vad som är förvalt kan du se i <<relevant_links,Digg's bas för organisationen DiggSweden, under kompletterande länkar>>.
+Vad som är förvalt kan du se i Digg's bas för organisationen DiggSweden, <<#kompletterande-länkar>>.
 
 == Förvaltning och livscykelhantering
 
@@ -122,7 +121,7 @@ Hur team lägger upp det i detalj är upp till Teamet.
 * Att svara på ärenden/issues
 
 I grund och botten är vår GitHub och projektytor avseeda för projektfokuserade ärenden.
-Vi försöker styra undan diskussioner som inte rör projektet direkt till andra ytor (se <<other_links,Dataportalens Communityforum>>).
+Vi försöker styra undan diskussioner som inte rör projektet direkt till andra ytor som Dataportalens Communityforum (se <<#övriga-länkar>>).
 Tveka inte att vidarebeforda frågor till exempelvis Digg's kundtjänst.
 Exempel kan vara frågor som inte är av teknisk karaktär, eller som inte rör projektet mer specifikt.
 
@@ -142,7 +141,7 @@ TIP: Vi är en myndighet, och förväntas av allmänheten besvara vänligt, korr
 
 GitHub bjuder på en mängd verktyg för automatiserade sårbarhet- och säkerhetsgenomsökningar, inklusive beroende-kontroll och statisk kodanalys.
 Vi aktiverar i princip allt som blir tillgängligt inom detta område för GitHub.
-Se <<default_settings,Standardinställningar>> för vilka funktioner som är aktiverade.
+Se <<#förvalda-github-inställningar>> för vilka funktioner som är aktiverade.
 Förinställningarna kan sedan behöva finjusteras av teamet.
 
 TO-DO: Add image of GitHub Security tab
@@ -170,20 +169,16 @@ Ett migrationsarbete pågår här.
 
 == Länkar
 
-[[relevant_links]]
 === Kompletterande länkar
 
 * https://www.digg.se/download/18.72c5e64d183579af3fd1b6c/1664286148293/riktlinjer-for-utveckling-och-publicering-av-oppen-programvara.pdf[Allmänna riktlinjer för Öppen Källkod på Digg]
 * https://github.com/diggsweden/open-source-project-template[Digg’s hjälpmallprojekt för öppen källkod-projekt]
-* https://github.com/diggsweden/open-source-project-template[Digg’s Checklista för öppen källkod-projekt]
+* https://github.com/diggsweden/open-source-project-template/blob/main/docs/Open_Source_Checklist.adoc#the-open-source-release-checklist[Digg’s Checklista för öppen källkod-projekt]
 * https://github.com/diggsweden/.github[Digg’s bas för organisationen DiggSweden]
 
-[[other_links]]
 === Övriga länkar
 * https://community.dataportal.se/[Dataportalens Communityforum - Öppna Data och Öppen Källkod-diskussioner för det offentliga]
 
-
-[appendix]
 == Vanliga frågor (FAQ)
 
 === Team
@@ -199,7 +194,7 @@ En 'Member' kan vara medlem av många team.
 
 * Jag vill forka ett externt projekt, ska jag göra det under Digg's GitHub-organisation eller under min privata användare?
 +
-I de flesta fall så säger vi nej på att lägga forken under Digg-organisationen, forka under din användare i första hand. 
+I de flesta fall så säger vi nej på att lägga forken under Digg-organisationen, forka under din användare i första hand.
 Vi vill inte att organisationen DiggSweden ska ses som att man har tagit på sig att förvalta en fork av något projekt.
 Forkar som ligger under organisationen och inte har diskuteras om i förväg om kommer att arkiveras.
 
@@ -227,9 +222,8 @@ Premissen är dock att privata projekt ska samarbetas om på lämpligare (stäng
 
 * Jag har bara fler frågor nu. Var ska jag vända mig?
 
-Maila i första hand <ospo@digg.se>, i andra hand kontakta någon av <<owners,Owners>> så kan de hjälpa dig vidare.
+Maila i första hand <ospo@digg.se>, i andra hand kontakta någon av <<#inledning,Owners>> så kan de hjälpa dig vidare.
 
-[appendix]
 == Terminologi
 
 .Terminologi i detta dokument
@@ -254,12 +248,10 @@ En rad konfigurerbara processer för att bygga, autotesta, deploya projekt som k
 |===
 
 
-[appendix]
-[[default_settings]]
-== Översikt av förvalda GitHub-inställningar (DiggSweden)
+== Förvalda GitHub-inställningar
 
 GitHub har flera bra funktioner för säkerhet, adminstration och förvaltning, och många av dessa måste aktiveras.
-Detta avsnitt beskriver en del av de inställningar som är aktiverade.
+Detta avsnitt beskriver en del av de inställningar som är aktiverade på DiggSweden.
 
 Syftet är inte att dokumentera alla detaljinställningar i tabellen, men att ge en översikt så att användare förstår vilka möjligheter de har i sina projekt.
 
@@ -304,3 +296,4 @@ Syftet är inte att dokumentera alla detaljinställningar i tabellen, men att ge
 |===
 
 CAUTION: Flera av de beskrivna inställningarna gäller inte om du använder privata repositories, då det kräver en betalplan för GitHub.
+
