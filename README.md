@@ -26,7 +26,7 @@ Note that these files are mostly taken from the general [Open Source Project Tem
 
 Most, but not all of the files are licensed under the Creative Commons Zero v1.0 Universal License - see the file headers for details.
 
-CODE_OF_CONDUCT.md is Copyright: [Contributor Covenant](https://www.contributor-covenant.org/)  
+CODE_OF_CONDUCT.md is Copyright: [Contributor Covenant](https://www.contributor-covenant.org/)
  License: [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)
 
 Finally, the Digg Logo is *not* under any free usage License.
