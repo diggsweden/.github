@@ -70,8 +70,22 @@ Network for Open Source and Data in the public sector.
 - [Offentlig kod (in Swedish only)](https://offentligkod.se)
 A searchable catalogue of Open Source Software used in the public sector, with contribution possibilities.
 
-## :hammer: Tooling
-..
+## :hammer: Various Project Collections
+
+- asom (arbetsgruppen för samordning mjukvara)  
+
+  Jitsi related plugins   
+  - [jitsi-outlook](https://github.com/diggsweden/jitsi-outlook) - A Jitsi plugin for outlook. 
+  - [jitsi-moderator](https://github.com/diggsweden/jitsi-moderator) - Advanced Jitsi meet management for moderators.
+
+- Digital inkludering
+
+  Toolbox for digital inclusion 
+  The following material does not have an active maintenance, however, it is available to improve upon:
+  - [UserFeedbackApp](https://github.com/diggsweden/UserFeedbackApp) - React.js application to collect anonymous feedback data
+  - [SupportModalApp](https://github.com/diggsweden/SupportModalApp) - Vue.js application with various help functions accompanied by a help button
+  - [UserFeedbackAPI](https://github.com/diggsweden/UserFeedbackApi) - Server API to collect anonymous feedback data
+  - [InclusionToolbox](https://github.com/diggsweden/InclusionToolbox) - JavaScript drop-in toolbox plugin
 
 ## :scroll: Documentation
 ..
@@ -152,7 +166,22 @@ Nätverket för öppna data och öppen källkod inom det offentliga.
 - [Offentlig kod](https://offentligkod.se)
 En sökbar katalog över öppen källkods-projekt som används inom offentlig sektor. Bidra och förbättra.
 
-## :hammer: Verktyg
+## :hammer: Olika projektsamlingar
+
+- asom (arbetsgruppen för samordning mjukvara)  
+
+  Jitsi related plugins   
+  - [jitsi-outlook](https://github.com/diggsweden/jitsi-outlook) - En Jitsi-plugin för outlook. 
+  - [jitsi-moderator](https://github.com/diggsweden/jitsi-moderator) - Jitsi-mötes-hantering för moderatorer.
+
+- Digital inkludering
+
+  Verktygslåda för digital inkludering    
+  Följande är referenmaterial som inte innehar aktiv förvaltning, men är tillgängligt att bygga vidare på.  
+  - [UserFeedbackApp](https://github.com/diggsweden/UserFeedbackApp) - React.js-applikation för samla in olika data. 
+  - [SupportModalApp](https://github.com/diggsweden/SupportModalApp) - Vue.js-applikation med olika hjälpfunktioner och hjälpknapp
+  - [UserFeedbackAPI](https://github.com/diggsweden/UserFeedbackApi) - Server-API för att samla in anonym-feedback-data 
+  - [InclusionToolbox](https://github.com/diggsweden/InclusionToolbox) - JavaScript drop-in toolbox-plugin
 ..
 
 ## :scroll: Dokumentation
