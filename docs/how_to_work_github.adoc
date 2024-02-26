@@ -154,6 +154,10 @@ Ett migrationsarbete pågår här.
 
 === Externa biblioteksytor
 
+Publicera inte paket på externa ytor i Digg's namn, men med personligt namn som avsändare.
+
+Använd ospo@digg.se som avsändare. Detta för att undvika personberoenden i framtiden, eller än värre, inaktuella epost-adresser.
+
 ==== NPM
 
 Vi har i skrivande stund två organisationer på https://www.npmjs.com/[NPMJS]  - digg, samt diggsweden.
