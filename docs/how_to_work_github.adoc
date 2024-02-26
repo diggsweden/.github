@@ -156,9 +156,13 @@ Ett migrationsarbete pågår här.
 
 ==== NPM
 
+Vi har i skrivande stund två organisationer på https://www.npmjs.com/[NPMJS]  - digg, samt diggsweden.
 
+Det som ligger under 'digg' ska arkiveras, och det är organisation diggsweden som ska användas i framtiden.
 
 ==== Maven Central
+
+TO-DO
 
 ==== GitHub Registry
 
