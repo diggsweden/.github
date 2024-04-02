@@ -1,6 +1,6 @@
 = Hur vi jobbar med Öppen Källkod på GitHub
 Digg Open Source Guild <ospo@digg.se>
-v0.1.8, {docdatetime}
+v0.1.9, {docdatetime}
 :description: A guide for working on Digg's GitHub spaces
 :toc:
 :toclevels: 4
@@ -48,12 +48,13 @@ Enklast brukar vara att bara lägga till <namn@digg.se> till ditt befintliga kon
 === Säkerhet för ditt GitHub-konto
 
 * Aktivera 2FA för ditt konto: https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa[Aktivera tvåfaktors-autentisering]
-* Ta en säkerhetskopia på återställningskoderna som du kan hämta från kontot för din 2FA, och förvara på säkert ställe.
+** Ta en säkerhetskopia på återställningskoderna som du kan hämta från kontot för din 2FA, och förvara på säkert ställe.
 
-Vidare, om du ska bidra till projekten med Pull Requests och annat:
+* Aktivera  "Vigilant Mode" för din användare: https://docs.github.com/en/authentication/managing-commit-signature-verification/displaying-verification-statuses-for-all-of-your-commits[Aktivera 'Vigilant Mode' - visar signerade commits som verifierade]
+
+Vidare, om du ska bidra till projekten med Pull Requests:
 
 * Genomför inställningarna för att signera dina commits: https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification[Signera commits]
-* Aktivera  "Vigilant Mode" för din användare: https://docs.github.com/en/authentication/managing-commit-signature-verification/displaying-verification-statuses-for-all-of-your-commits[Aktivera 'Vigilant Mode' - visar signerade commits som verifierade]
 
 TO-DO: image of signing
 
@@ -120,7 +121,7 @@ Hur team lägger upp det i detalj är upp till Teamet.
 
 * Att svara på ärenden/issues
 
-I grund och botten är vår GitHub och projektytor avseeda för projektfokuserade ärenden.
+I grund och botten är vår GitHub och projektytor avsedda för projektfokuserade ärenden.
 Vi försöker styra undan diskussioner som inte rör projektet direkt till andra ytor som Dataportalens Communityforum (se <<#övriga-länkar>>).
 Tveka inte att vidarebeforda frågor till exempelvis Digg's kundtjänst.
 Exempel kan vara frågor som inte är av teknisk karaktär, eller som inte rör projektet mer specifikt.
@@ -129,7 +130,7 @@ TIP: Vi är en myndighet, och förväntas av allmänheten besvara vänligt, korr
 
 === Hantera inaktiva medlemmar
 
-* Se till att inaktiva medarbetare lämnar GitHub-organisationen (Admin-rollen för teamet håller översiktlig koll).
+* Se till att inaktiva medarbetare lämnar GitHub-organisationen (Admin-rollen för teamet håller översiktlig koll, kommer automatiseras).
 
 * Inaktiv användare inom GitHub-organisationen rensas automatiskt efter ett år. TO-DO
 
@@ -198,6 +199,12 @@ Be någon som har Owner-rollen på GitHub, eller kontakta ospo@digg.se för att 
 * Hur ska team delas in - per produkt, konsultgrupp eller vad?
 +
 Befintliga team delas ibland upp på ansvarsområde, ibland på konsulttillhörighet, ibland projekt. Avgör vad som passar er bäst.
+En 'Member' kan vara medlem av många team.
+
+* Ett team ges ju tillgång till ett eller flera repositorys - vilka rättigheter ska de ha som default/standard?
++
+Det förekommer ej säkerhetsklassade personer i ett team, så ett repositorys skrivrättigheter SKA vara "Read/Läs" för teamet. Sedan får Admin för teamet, efter behov, se till att behövande medlemmar har rättigheterna de behöver "Write", "Maintainer" etc.
+
 En 'Member' kan vara medlem av många team.
 
 * Jag vill forka ett externt projekt, ska jag göra det under Digg's GitHub-organisation eller under min privata användare?
