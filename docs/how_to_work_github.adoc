@@ -16,6 +16,9 @@ Digg har idag två externa samarbetsytor för för öppen källkod och öppna sa
 Där samverkar man kring diverse projekt, både med externa konsulter, bidragsgivare, och Digg-anställda.
 Huvudsakligen ligger där programmeringstunga-projekt, men det förekommer även rena dokumentations- och specifikations-projekt.
 
+NOTE: Vad gäller Öppen Källkod-projekten på Digg’s GitHub-ytor, som tas fram på direkt beställning av Digg och är direkt avsedd för deployment på Digg’s drifts-miljöer gäller att projektet också SKA kunna byggas och deployas i Digg's interna miljöer. Se i det fallet intern Digg-utvecklardokumentation (utvecklarhandbok) för detaljer.
+
+
 .Samarbetsytor
 [cols="1,1,1,1,1"]
 |===
