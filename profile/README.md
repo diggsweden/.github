@@ -1,6 +1,6 @@
 <p align="center">
   <br>
-  <img width="550" src="profile/digg-logo.png" alt="digg logo">
+  <img width="550" src="digg-logo.png" alt="digg logo">
   <br>
 </p>
 
@@ -94,7 +94,7 @@ A searchable catalogue of Open Source Software used in the public sector, with c
 ---
 <p align="center">
   <br>
-  <img width="550" src="profile/digg-logo.png" alt="digg logo">
+  <img width="550" src="digg-logo.png" alt="digg logo">
   <br>
 </p>
 
