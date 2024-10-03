@@ -12,7 +12,7 @@ NOTE: Är du aktiv på Digg's GitHub-ytor, läs igenom detta dokument, och <<#ko
 En översikt av hur Digg jobbar på samarbetsytorna för öppen källkod.
 footnote:[Detta dokument har specifikt https://github.com/diggsweden[DiggSweden] i fokus]
 
-Digg har idag två externa samarbetsytor för för öppen källkod och öppna samarbeten på GitHub.
+Digg har idag två externa samarbetsytor för öppen källkod och öppna samarbeten på GitHub.
 Där samverkar man kring diverse projekt, både med externa konsulter, bidragsgivare, och Digg-anställda.
 Huvudsakligen ligger där programmeringstunga-projekt, men det förekommer även rena dokumentations- och specifikations-projekt.
 
