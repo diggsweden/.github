@@ -185,7 +185,7 @@ TO-DO
 
 * https://www.digg.se/download/18.72c5e64d183579af3fd1b6c/1664286148293/riktlinjer-for-utveckling-och-publicering-av-oppen-programvara.pdf[Allmänna riktlinjer för Öppen Källkod på Digg]
 * https://github.com/diggsweden/open-source-project-template[Digg’s hjälpmallprojekt för öppen källkod-projekt]
-* https://github.com/diggsweden/open-source-project-template/blob/main/docs/Open_Source_Checklist.adoc#the-open-source-release-checklist[Digg’s Checklista för öppen källkod-projekt]
+* https://github.com/diggsweden/open-source-project-template/blob/main/docs/Open_Source_Checklist.md#the-open-source-release-checklist[Digg’s Checklista för öppen källkod-projekt]
 * https://github.com/diggsweden/.github[Digg’s bas för organisationen DiggSweden]
 
 === Övriga länkar

@@ -40,7 +40,7 @@ Digg's recommendations about licenses for open resources.
 - [Digg’s helper template project for Open Source projects](https://github.com/diggsweden/open-source-project-template)
 A helper project with templates for releasing an Open Source Project.
 
-- [Digg’s checklist for Open Source projects](https://github.com/diggsweden/open-source-project-template/blob/main/docs/Open_Source_Checklist.adoc)
+- [Digg’s checklist for Open Source projects](https://github.com/diggsweden/open-source-project-template/blob/main/docs/Open_Source_Checklist.md)
 A checklist for the release of Open Source projects.
 
 - [How to work on Digg's GitHub (in Swedish only)](https://github.com/diggsweden/.github/blob/main/docs/how_to_work_github.adoc)
@@ -135,7 +135,7 @@ Digg's rekommendationer för licenser av öppna data och andra resurser än käl
 - [Digg’s hjälpmallprojekt för öppen källkod-projekt](https://github.com/diggsweden/open-source-project-template)
 Ett hjälpprojekt för när man ska ska släppa ett öppen källkod-projekt.
 
-- [Digg’s checklista för öppen källkod-projekt](https://github.com/diggsweden/open-source-project-template/blob/main/docs/Open_Source_Checklist.adoc)
+- [Digg’s checklista för öppen källkod-projekt](https://github.com/diggsweden/open-source-project-template/blob/main/docs/Open_Source_Checklist.md)
 En checklista inför släpp av öppen källkodprojekt.
 
 - [Hur vi jobbar på Digg's GitHub](https://github.com/diggsweden/.github/blob/main/docs/how_to_work_github.adoc)
