@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2024 Digg - Agency for Digital Government
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Description:
+# This workflow performs a dependency review to identify vulnerable or outdated dependencies in your repository.
+# It uses GitHub's Dependency Review Action to analyze dependencies and fail the workflow if vulnerabilities
+# of a specified severity level are found.
+#
+# Usage:
+# 1. Add the following to your workflow file:
+#    jobs:
+#      dependency-review:
+#        uses: <orgname>/<reponame>/.github/workflows/<workflowname>.yml@main
+#        with:
+#          fail-on-severity: "critical" # Optional, default is "critical"
+#
+# 2. The workflow will analyze dependencies and fail if vulnerabilities of the specified severity level are found.
+#    Supported severity levels: critical, high, moderate, low.
+---
+
+    name: Dependency Review
+    
+    on:
+      workflow_call:
+        inputs:
+          fail-on-severity:
+            description: "Severity level to fail the workflow (e.g., critical, high, moderate, low)"
+            required: false
+            default: "critical"
+            type: string
+    
+    permissions:
+      contents: read
+    
+    jobs:
+      dependency-review:
+        name: Dependency Review analysis
+        runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request'
+        steps:
+          - name: Checkout repository
+            uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    
+          - name: Dependency Review
+            uses: actions/dependency-review-action@3b139cfc5fae8b618d3eae3675e383bb1769c019 # v4.5.0
+            with:
+              fail-on-severity: ${{ inputs.fail-on-severity }}

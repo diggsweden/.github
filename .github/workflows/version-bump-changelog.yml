@@ -1,0 +1,144 @@
+# SPDX-FileCopyrightText: 2024 Digg - Agency for Digital Government
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Description:
+# This workflow automates version bumping and changelog generation for your repository.
+# It generates a changelog, commits it, and moves the latest tag to the current commit.
+#
+# How to use:
+# 1. Add the following to your workflow file:
+#    jobs:
+#      version-bump-changelog:
+#        uses: <orgname>/<reponame>/.github/workflows/<workflowname>.yml@main
+#        with:
+#          branch: "main" # Optional, default is "main"
+#          changelog-config: "keepachangelog" # Optional, default is "keepachangelog"
+#          minimal-changelog-config: "minimal" # Optional, default is "minimal"
+#          bot-gh-token: ${{ secrets.BOT_GHTOKEN }} # Required
+#          bot-gpg-priv: ${{ secrets.BOT_GPG_PRIV }} # Required
+#          bot-gpg-pass: ${{ secrets.BOT_GPG_PASS }} # Required
+#
+# 2. Ensure your repository has the required secrets:
+#    - BOT_GHTOKEN: A GitHub token with write access.
+#    - BOT_GPG_PRIV: A GPG private key for signing commits.
+#    - BOT_GPG_PASS: The passphrase for the GPG private key.
+#
+# 3. The workflow will generate a changelog, commit it, and update the latest tag.
+---
+    name: Version Bump and Changelog Gen
+    
+    on:
+      workflow_call: # yamllint disable-line rule:truthy
+        inputs:
+          branch:
+            description: "Branch to checkout and work on (default: main)"
+            required: false
+            default: "main"
+            type: string
+          changelog-config:
+            description: "Configuration for the full changelog (default: keepachangelog)"
+            required: false
+            default: "keepachangelog"
+            type: string
+          minimal-changelog-config:
+            description: "Configuration for the minimal changelog (default: minimal)"
+            required: false
+            default: "minimal"
+            type: string
+          bot-gh-token:
+            description: "GitHub token with write access (required)"
+            required: true
+            type: string
+          bot-gpg-priv:
+            description: "GPG private key for signing commits (required)"
+            required: true
+            type: string
+          bot-gpg-pass:
+            description: "Passphrase for the GPG private key (required)"
+            required: true
+            type: string
+          egress-policy:
+            description: "Egress policy for the Harden Runner step (e.g., audit, block)"
+            required: false
+            default: "audit"
+            type: string
+    
+    permissions:
+      contents: read
+    
+    jobs:
+      bump-version:
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+        steps:
+          - name: Harden GitHub runner
+            uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
+            with:
+              egress-policy: ${{ inputs.egress-policy }}
+        
+          - name: Checkout repository
+            uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+            with:
+              fetch-depth: 0
+              ref: ${{ inputs.branch }} 
+              token: ${{ inputs.bot-gh-token }} 
+    
+          - name: Import GPG key
+            id: import-gpg
+            uses: crazy-max/ghaction-import-gpg@cb9bde2e2525e640591a934b1fd28eef1dcaf5e5 # v6
+            with:
+              gpg_private_key: ${{ inputs.bot-gpg-priv }} 
+              passphrase: ${{ inputs.bot-gpg-pass }} 
+              git_user_signingkey: true
+              git_commit_gpgsign: true
+              git_config_global: true
+    
+          - name: Generate changelog
+            uses: orhun/git-cliff-action@4a4a951bc43fafe41cd2348d181853f52356bee7 # v4
+            with:
+              config: ${{ inputs.changelog-config }} 
+            env:
+              OUTPUT: CHANGELOG.md
+              GITHUB_REPO: ${{ github.repository }}
+    
+          - name: Generate minimal changelog
+            id: minimal-changelog
+            uses: orhun/git-cliff-action@4a4a951bc43fafe41cd2348d181853f52356bee7 # v4
+            with:
+              config: ${{ inputs.minimal-changelog-config }}
+              args: --latest --strip header
+            env:
+              GITHUB_REPO: ${{ github.repository }}
+    
+          - name: Commit and Push Changes
+            uses: stefanzweifel/git-auto-commit-action@e348103e9026cc0eee72ae06630dbe30c8bf7a79 # v5
+            with:
+              commit_message: |
+                chore(release): ${{ github.ref_name }}
+    
+                ${{ steps.minimal-changelog.outputs.content }}
+    
+                [skip ci]
+              file_pattern: "CHANGELOG.md"
+              commit_author: "${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
+              commit_user_name: ${{ steps.import-gpg.outputs.name }}
+              commit_user_email: ${{ steps.import-gpg.outputs.email }}
+              commit_options: " --signoff"
+              skip_fetch: true
+    
+          - name: Move tag to current commit
+            run: |
+              LATEST_TAG=$(git describe --tags --abbrev=0)
+    
+              PREV_SHA=$(git rev-parse HEAD~1)
+              TAG_SHA=$(git rev-list -n 1 "$LATEST_TAG")
+    
+              if [ "$TAG_SHA" = "$PREV_SHA" ]; then
+                git tag -f -s "$LATEST_TAG" -m "$LATEST_TAG"
+                git push --force origin "$LATEST_TAG"
+              else
+                echo "Tag $LATEST_TAG not pointing to previous commit as expected"
+                exit 1
+              fi

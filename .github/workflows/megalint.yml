@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2024 Digg - Agency for Digital Government
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Description:
+# This workflow runs MegaLinter to analyze your codebase for linting, security, and formatting issues.
+# It uploads the results as artifacts and integrates with the GitHub Security tab.
+#
+# How to use:
+# 1. Add the following to your workflow file:
+#    jobs:
+#      mega-linter:
+#        uses: <orgname>/<reponame>/.github/workflows/<workflowname>.yml@main
+#        with:
+#          megalinter-config: "path/to/your/megalinter.yml" # Optional
+#
+# 2. Ensure your repository has a MegaLinter configuration file (e.g., `.mega-linter.yml`).
+#    If not, MegaLinter will use its default configuration.
+#
+# 3. The results will be available as artifacts and in the GitHub Security tab.
+---
+    name: MegaLinter
+    
+    on:
+      workflow_call: # yamllint disable-line rule:truthy
+        inputs:
+          megalinter-config:
+            description: "Path to the MegaLinter configuration file (e.g., .mega-linter.yml)"
+            required: false
+            default: "development/megalinter.yml"
+            type: string
+          egress-policy:
+            description: "Egress policy for the Harden Runner step (e.g., audit, block)"
+            required: false
+            default: "audit"
+            type: string
+    
+    permissions:
+      contents: read
+    
+    jobs:
+      megalinter:
+        name: Megalinter analysis
+        runs-on: ubuntu-latest
+        permissions:
+          contents: read
+          security-events: write
+        env:
+          MEGALINTER_CONFIG: ${{ inputs.megalinter-config }} # Use the input value
+        steps:
+          - name: Harden GitHub runner
+            uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
+            with:
+              egress-policy: ${{ inputs.egress-policy }}
+        
+          - name: Checkout repository
+            uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+            with:
+              fetch-depth: 10
+    
+          - name: MegaLinter lint
+            id: ml
+            uses: oxsecurity/megalinter@1fc052d03c7a43c78fe0fee19c9d648b749e0c01 # v8.3.0
+    
+          - name: Archive MegaLinter artifacts
+            if: always()
+            uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+            with:
+              name: MegaLinter reports
+              path: |
+                megalinter-reports
+              retention-days: 5
+    
+          - name: Upload MegaLinter scan results to GitHub Security tab
+            if: success() || failure()
+            uses: github/codeql-action/upload-sarif@f6091c0113d1dcf9b98e269ee48e8a7e51b7bdd4 # v3.28.5
+            with:
+              sarif_file: "megalinter-reports/megalinter-report.sarif"
