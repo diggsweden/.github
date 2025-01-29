@@ -56,18 +56,6 @@
             required: false
             type: string
             default: 'CHANGELOG.md'
-          bot-gh-token:
-            description: "GitHub token with write access (required)"
-            required: true
-            type: string
-          bot-gpg-priv:
-            description: "GPG private key for signing commits (required)"
-            required: true
-            type: string
-          bot-gpg-pass:
-            description: "Passphrase for the GPG private key (required)"
-            required: true
-            type: string
           egress-policy:
             description: "Egress policy for the Harden Runner step (e.g., audit, block)"
             required: false
@@ -93,18 +81,18 @@
             with:
               fetch-depth: 0
               ref: ${{ inputs.branch }} 
-              token: ${{ inputs.bot-gh-token }} 
+              token: ${{ secrets.GITHUB_TOKEN }} 
     
           - name: Import GPG key
             id: import-gpg
             uses: crazy-max/ghaction-import-gpg@cb9bde2e2525e640591a934b1fd28eef1dcaf5e5 # v6
             with:
-              gpg_private_key: ${{ inputs.bot-gpg-priv }} 
-              passphrase: ${{ inputs.bot-gpg-pass }} 
+              gpg_private_key: ${{ secrets.OSPO_BOT_GPG_PRIV }} 
+              passphrase: ${{ secrets.OSPO_BOT_GPG_PASS }} 
               git_user_signingkey: true
               git_commit_gpgsign: true
               git_config_global: true
-          
+
           - name: Update POM version
             if: ${{ inputs.updatePom }}
             env:
