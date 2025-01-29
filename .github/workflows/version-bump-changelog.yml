@@ -36,6 +36,11 @@
             required: false
             default: "main"
             type: string
+          updatePom:
+            description: "Whether to update a POM version (default: false)"
+            required: false
+            default: false
+            type: boolean
           changelog-config:
             description: "Configuration for the full changelog (default: keepachangelog)"
             required: false
@@ -46,6 +51,11 @@
             required: false
             default: "minimal"
             type: string
+          file_pattern:
+            description: 'Pattern for files to commit, space separated (default: CHANGELOG.md)'
+            required: false
+            type: string
+            default: 'CHANGELOG.md'
           bot-gh-token:
             description: "GitHub token with write access (required)"
             required: true
@@ -94,7 +104,18 @@
               git_user_signingkey: true
               git_commit_gpgsign: true
               git_config_global: true
-    
+          
+          - name: Update POM version
+            if: ${{ inputs.updatePom }}
+            env:
+              GITHUB_ACTOR: ${{ github.actor }}
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            run: |
+              echo "Tag: ${GITHUB_REF_NAME}"
+              TAG="${GITHUB_REF_NAME#v}"
+              echo "Version: ${TAG}"
+              mvn $MAVEN_CLI_OPTS versions:set -DnewVersion="${TAG}" -DgenerateBackupPoms=false -DskipTests
+   
           - name: Generate changelog
             uses: orhun/git-cliff-action@4a4a951bc43fafe41cd2348d181853f52356bee7 # v4
             with:
@@ -121,7 +142,7 @@
                 ${{ steps.minimal-changelog.outputs.content }}
     
                 [skip ci]
-              file_pattern: "CHANGELOG.md"
+              file_pattern: ${{ inputs.file_pattern || 'CHANGELOG.md' }}
               commit_author: "${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
               commit_user_name: ${{ steps.import-gpg.outputs.name }}
               commit_user_email: ${{ steps.import-gpg.outputs.email }}
