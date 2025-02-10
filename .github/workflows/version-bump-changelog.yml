@@ -15,9 +15,6 @@
 #          branch: "main" # Optional, default is "main"
 #          changelog-config: "keepachangelog" # Optional, default is "keepachangelog"
 #          minimal-changelog-config: "minimal" # Optional, default is "minimal"
-#          bot-gh-token: ${{ secrets.BOT_GHTOKEN }} # Required
-#          bot-gpg-priv: ${{ secrets.BOT_GPG_PRIV }} # Required
-#          bot-gpg-pass: ${{ secrets.BOT_GPG_PASS }} # Required
 #
 # 2. Ensure your repository has the required secrets:
 #    - BOT_GHTOKEN: A GitHub token with write access.
@@ -81,7 +78,7 @@
             with:
               fetch-depth: 0
               ref: ${{ inputs.branch }} 
-              token: ${{ secrets.GITHUB_TOKEN }} 
+              token: ${{ secrets.OSPO_BOT_GHTOKEN }} 
     
           - name: Import GPG key
             id: import-gpg
