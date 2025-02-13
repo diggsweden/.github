@@ -12,13 +12,28 @@ It also contains the front presentation text.
 
 Contents:
 
+## Docs:
+
+- docs/how_to_work_github.adoc (A document describing how to work on Digg's GitHub)
+
+
 - SECURITY.md (A general template for where to report Security Issues)
 - CODE_OF_CONDUCT.md (Contributor Covenant)
 - Templates for the Pull Requests, Bug and Feature Requests
 - profile/README.md (GitHub-organisation fronttext)
-- docs/how_to_work_github.adoc (A document describing how to work on Digg's GitHub)
+
 
 Note that these files are mostly taken from the general [Open Source Project Template-project](https://github.com/diggsweden/open-source-project-template) and any Issues should most likely go there directly.
+
+## Reusable Workflows 
+
+- CommitLint
+- DependencyAnalysis
+- LicenseLint
+- MegaLint - Lint Containers, scripts, code
+- OpenSSF-Scorecard - Projecthealth from a security perspective 
+- Versionbump and Changelog - generate a Changelog, in a commit Release, bump project versio
+
 
 ----
 
