@@ -1,6 +1,6 @@
 = Hur vi jobbar med Öppen Källkod på GitHub
 Digg Open Source Guild <ospo@digg.se>
-v0.1.9, {docdatetime}
+v0.2.0, {docdatetime}
 :description: A guide for working on Digg's GitHub spaces
 :toc:
 :toclevels: 4
@@ -10,11 +10,12 @@ NOTE: Är du aktiv på Digg's GitHub-ytor, läs igenom detta dokument, och <<#ko
 == Inledning
 
 En översikt av hur Digg jobbar på samarbetsytorna för öppen källkod.
-footnote:[Detta dokument har specifikt https://github.com/diggsweden[DiggSweden] i fokus]
+footnote:[Detta dokument har specifikt https://github.com/diggsweden[DiggSweden] i fokus],
+men på sikt bör samma principer appliceras på SwedenConnect
 
-Digg har idag två externa samarbetsytor för för öppen källkod och öppna samarbeten på GitHub.
+Digg har idag två externa samarbetsytor för öppen källkod och samarbeten på samverkansplattformen GitHub.
 Där samverkar man kring diverse projekt, både med externa konsulter, bidragsgivare, och Digg-anställda.
-Huvudsakligen ligger där programmeringstunga-projekt, men det förekommer även rena dokumentations- och specifikations-projekt.
+Huvudsakligen ligger där programmeringstunga-projekt - men det förekommer även rena dokumentations- och specifikations-projekt.
 
 NOTE: Vad gäller Öppen Källkod-projekten på Digg’s GitHub-ytor, som tas fram på direkt beställning av Digg och är direkt avsedd för deployment på Digg’s drifts-miljöer gäller att projektet också SKA kunna byggas och deployas i Digg's interna miljöer. Se i det fallet intern Digg-utvecklardokumentation (utvecklarhandbok) för detaljer.
 
@@ -47,6 +48,7 @@ Du behöver till att börja med skaffa ett https://github.com/signup[GitHub-kont
 * Du väljer själv om du vill lägga till din <namn@digg.se>-epost-adress till ett befintlig GitHub-konto, eller skapa ett helt nytt GitHub-konto för din Digg-personlighet.
 Enklast brukar vara att bara lägga till <namn@digg.se> till ditt befintliga kontos epost-adresser.
 * Oavsett vad ditt användarnamn är, se till att också fylla i ditt riktiga namn (GitHub->Edit Profile->Name).
+  - Det kan också finna skäl till att vara anonym utåt.
 
 === Säkerhet för ditt GitHub-konto
 
@@ -76,7 +78,7 @@ Det underlättar användandet om du har grundläggande kunskap om rollerna vi an
 
 * Owner - superadministratörer för organisationen i sig.
 * Member - alla inbjudna till organisationen. Ska läggas i olika Team för tillgång til specifika repos/projekt.
-* External Collaborator - externa användare som inte är inbjudna till organisationen men ges enskilda rättigheter.
+* External Collaborator - externa användare som inte är inbjudna till organisationen men ges enskilda rättigheter till projekt.
 
 NOTE: En GitHub-Organisation kan ha fler än tre roller, se https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/roles-in-an-organization[organisationsroller]
 
@@ -87,20 +89,27 @@ Exempel är `admin, maintain, read` https://docs.github.com/en/organizations/man
 
 ==== Admin-rollen och dess ansvar
 
-Varje GitHub-team ska ha en eller flera användare i rollen som Admin.
-En Admin förväntas ha övergripande översikt om sitt Team och dess projekt och:
+Varje GitHub-projeket SKA ha en eller flera användare i rollen som Admin.
+**En Admin i ett team ska ha övergripande översikt och kunskap om sitt projekt** och:
 
 * ta ansvar för att agera eller delegera ansvaret för sitt teams/s:
   - säkerhetsvarningar
   - ta bort användare ur teamet som är inaktiva
+  - ha full kontroll över vilka som har t.ex. skrivrättigheter i projektet.
 * ta ansvar för att projekten arbetar i övrigt för god projekthälsa genom att följa rekommenderade konventioner, (se <<#kompletterande-länkar>>).
 * vara teamets/ens första kontaktyta med <<#inledning,Owners>>  för adminstrativa spörsmål vid behov.
+* som admin - fråga alltid om du är osäker
 
 === External Collaborator-rollen
 
-Undvik i första hand denna roll. Istället för att lägga till 'External Collaborator' så rekommenderas det numer att man vid samarbeten lägger användare i ett GitHub-team, nytt eller befintligt. På så vis regleras behörigheter till repositories för en grupp användare, de i teamet, istället för hantering av behörigheter riktade mot en specifik användare.
-Det ger en mycket bättre separation och översikt över användaren och vilka rättigheter användaren har.
+Numer är vi inte lika glada i att lägga användare i ett GitHub-team, då varje användare är en kostnad, men man behöver inte heller alltid lägga en användare som External Colloborator.
 
+
+== Allmänt om roller
+
+** Om projektet är offentligtgår det oftast att låta användarna jobba med Pull Requests och Forkar -
+precis i som vanliga Öppen Källkod-projekt.
+Alla användare måste inte höra till ett team, eller ens vara en External Collaborator **
 == Checklista, mallprojekt och rekommendationer
 
 === Hjälpmaterial, rekommendationer, checklista
@@ -109,7 +118,7 @@ Digg har tagit fram hjälpmaterial för Öppen Källkod-projekt, i form av inter
 
 === Basmall för GitHub-organisationen DiggSweden
 
-Ett projekt som läggs på DiggSweden's yta kommer att, som förvald standard erhålla generella GitHub-mallar för felrapporter, nya funktioner/förändringar och Pull Requests.
+Ett projekt som läggs på DiggSweden's yta kommer att, som förvald standard få en mängd generella GitHub-mallar för felrapporter, nya funktioner/förändringar och Pull Requests.
 Anpassa dessa efter projektens behov.
 Vad som är förvalt kan du se i Digg's bas för organisationen DiggSweden, <<#kompletterande-länkar>>.
 
@@ -129,7 +138,7 @@ Vi försöker styra undan diskussioner som inte rör projektet direkt till andra
 Tveka inte att vidarebeforda frågor till exempelvis Digg's kundtjänst.
 Exempel kan vara frågor som inte är av teknisk karaktär, eller som inte rör projektet mer specifikt.
 
-TIP: Vi är en myndighet, och förväntas av allmänheten besvara vänligt, korrekt och inom rimlig tid. Rekommenderad svarstid för ett ärende är fem dagar.
+TIP: Vi är en myndighet, och förväntas av allmänheten besvara vänligt, korrekt och inom rimlig tid. **Rekommenderad svarstid för ett ärende är fem dagar.**
 
 === Hantera inaktiva medlemmar
 
@@ -139,7 +148,9 @@ TIP: Vi är en myndighet, och förväntas av allmänheten besvara vänligt, korr
 
 === Arkivering av projekt
 
-* Om projektet inte är aktivt, det vill säga, har ingen förvaltare längre, så SKA det arkiveras, och detta BÖR helst tydliggöras i dess README.
+* Om projektet inte är aktivt, det vill säga, har ingen förvaltare längre, så SKA det arkiveras, och detta BÖR helst tydliggöras i dess README. 
+
+* Inaktivitet avgörs på årsbasis.
 
 == Sårbarhet och säkerhet
 
@@ -152,30 +163,78 @@ TO-DO: Add image of GitHub Security tab
 
 == Publicering av externa bibliotek och container-avbildningar
 
-WARNING: Work-in-progress, hoppa över detta stycke (Kommer avhandla de publiceringsställen vi redan har publiceringskonton på
-, i slutändan kanske eget doc, publicering.
+WARNING: Work-in-progress. 
 Ett migrationsarbete pågår här.
 
-=== Externa biblioteksytor
+=== Externa biblioteksytor - Mvn Central, npm.js, github packages med mera
 
-Publicera inte paket på externa ytor i Digg's namn, men med personligt namn som avsändare.
+För beständiga utgåvor/releasr, publicera inte paket som Digg handhar med personliga namn, utan använd ett generellt Digg-konto.
+Det går däremot utmärkt att sätta en eller flera aktiva "Developers".
 
-Använd ospo@digg.se som avsändare. Detta för att undvika personberoenden i framtiden, eller än värre, inaktuella epost-adresser.
+Använd ospo@digg.se som avsändare, och som publikatör. Detta för att undvika personberoenden i framtiden, eller än värre, inaktuella epost-adresser. Det finns en färdig digg-bot inklusive signeringsnycklar du kan använda, se följande dokumentation.
 
-==== NPM
 
-Vi har i skrivande stund två organisationer på https://www.npmjs.com/[NPMJS]  - digg, samt diggsweden.
+==== Yta - npmjs.com
 
-Det som ligger under 'digg' ska arkiveras, och det är organisation diggsweden som ska användas i framtiden.
+För Javascript/Typescript-bibliotek.
 
-==== Maven Central
+Digg äger i skrivande stund två organisationer på https://www.npmjs.com/[NPMJS]  - digg, samt diggsweden.
 
-TO-DO
+Det som ligger under 'digg' är arkiverad, och det är organisationen 'diggsweden' som ska användas i framtiden.
 
-==== GitHub Registry
+==== Yta - Maven Central Portal
 
-<TO-DO> detta ska vi också reda i , chainguard med mera att rekommendera för licens o säkerhetskompatibla image-avbildningar.
-* Om du publicerar container-externa images, föredra små säkra bascontainrar som distroless, Wolfi.
+För Java/Kotlin-bibliotek 
+
+Digg äger namespace:
+
+- 'se.digg' - använder Maven Central Portal
+- 'se.swedenconnect' - använder OSSRH 
+
+NOT: Maven Central Portals publishing API är det som ska användas för nya namespaces.
+
+==== Yta - GitHub Container och Package Registry
+
+
+* Om du publicerar maven paket på GitHub-packages, tänk på att den här ytan är avseed för utveckling och ej skarpa releaser. Därför behöver man exempelvis en GitHub-token för att komma åt dem. Det fungerar inte bra i Digg's miljöer etc, så se till att också punycblicera på Mvn Central Portal.
+
+Tänk dock på att det som publiceras på Mvn Central Portal och ej är SNAPSHOTS inte går att ta bort, utom i väldigt speciella fall.
+
+* Om du publicerar container-externa images, föredra små säkra bascontainrar som distroless, Wolfi, Chainguard.
+
+=== Release Bot, CI-flöde och tillgängliga variabler, 
+
+För att undvika att enskilda utvecklare handhar nycklar, samt att undvika personberoenden finns det en Release-Bot uppsatt, en del återanvändbara workflows, samt tillgängliga secrets.
+
+Det innebär att man kan låta boten signera, samt committa releaser i ett CI-flöde som triggas av en tag-push.
+
+För DiggSweden:
+
+- https://github.com/diggswedenbot[DiggSwedenBot]
+
+==== Secrets och variabler
+
+Finns tillgänliga variabler att nyttja i CI eller för bot:
+
+  - GPG-nyckel - för commits-releaser, signering av artifakter
+  - Maven Central Portal Token - för publicering till Maven Central Portal (ej OSSRH, utan nya Maven Central Portal)
+  - Release Token - för Jreleaser, extra skrivrättigheter
+  - JReleaser-token - Ska bort, och ersättast av Releasetoken helt
+
+Variablerna dokumenteras mer noggrant i Digg's intern-dokumentation. De görs tillgängliga för ett projekt vid förfrågan, och sätts alltså inte per-default.
+
+==== Återanvändbara CI-komponenter
+
+- CommitLint
+- Säkerhetsskanning av Pull Requests
+- LicenseLint
+- MegaLint - Lint av Container, skripts, kod etc
+- OpenSSF Scorecard - Projekthälsoanalys ur säkerhetsperspektiv
+- Versionsbump och Changelog - Genererar en Changelog och gör en release commit
+
+Återanvändbara CI-komponenter listas under link:../.github/workflows/[workflows i detta projekt]
+
+För ett praktiskt exempel av en sådant release-pipeline se exempelvis, https://github.com/diggsweden/cose-lib/tree/main/.github/workflows
 
 ...
 
@@ -198,6 +257,12 @@ TO-DO
 * Hur skapar jag ett GitHub-team?
 +
 Be någon som har Owner-rollen på GitHub, eller kontakta ospo@digg.se för att skapa ett GitHub-team.
+
+* Måste jag skapa ett GitHub-team?
++
+Nej, av kostnadskäl behöver inte alla som bidrar vara med i ett team i organisationen. Är projektet publikt 
+kan det räcka med en eller två förvaltare/maintainers godkänner Pull Requests från andra bara. Precis som i vanliga
+öppen källkodssfären.
 
 * Hur ska team delas in - per produkt, konsultgrupp eller vad?
 +

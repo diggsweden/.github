@@ -16,10 +16,11 @@
 #          changelog-config: "keepachangelog" # Optional, default is "keepachangelog"
 #          minimal-changelog-config: "minimal" # Optional, default is "minimal"
 #
-# 2. Ensure your repository has the required secrets:
-#    - BOT_GHTOKEN: A GitHub token with write access.
-#    - BOT_GPG_PRIV: A GPG private key for signing commits.
-#    - BOT_GPG_PASS: The passphrase for the GPG private key.
+# 2. Ensure your repository has the required secrets, listed in the job
+# 
+# secrets.OSPO_BOT_GHTOKEN
+# secrets.OSPO_BOT_GPG_PRIV
+# secrets.OSPO_BOT_GPG_PASS
 #
 # 3. The workflow will generate a changelog, commit it, and update the latest tag.
 ---
