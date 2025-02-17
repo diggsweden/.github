@@ -49,7 +49,7 @@
           MEGALINTER_CONFIG: ${{ inputs.megalinter-config }} # Use the input value
         steps:
           - name: Harden GitHub runner
-            uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
+            uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
             with:
               egress-policy: ${{ inputs.egress-policy }}
         
@@ -73,6 +73,6 @@
     
           - name: Upload MegaLinter scan results to GitHub Security tab
             if: success() || failure()
-            uses: github/codeql-action/upload-sarif@dd746615b3b9d728a6a37ca2045b68ca76d4841a # v3.28.8
+            uses: github/codeql-action/upload-sarif@9e8d0789d4a0fa9ceb6b1738f7e269594bdd67f0 # v3.28.9
             with:
               sarif_file: "megalinter-reports/megalinter-report.sarif"
