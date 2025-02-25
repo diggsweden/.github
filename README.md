@@ -27,13 +27,24 @@ Note that these files are mostly taken from the general [Open Source Project Tem
 
 ## Reusable Workflows 
 
+Some GitHub Workflows can be reused in other projects, see the '.github/workflows-folder.
+
 - CommitLint
 - DependencyAnalysis
 - LicenseLint
 - MegaLint - Lint Containers, scripts, code
 - OpenSSF-Scorecard - Projecthealth from a security perspective 
-- Versionbump and Changelog - generate a Changelog, in a commit Release, bump project versio
+- Versionbump and Changelog - generate a Changelog, in a commit Release, bump project version
 
+
+## GitCliff templates
+
+Git-Cliff is a changelog solution, with a few builtin templates. 
+These templates is the builtin ones but modified to remove 'chore(release):-lines from the output.
+
+- keepachangelog
+- minimal
+- default
 
 ----
 
