@@ -60,7 +60,7 @@
     
           - name: MegaLinter lint
             id: ml
-            uses: oxsecurity/megalinter@ec124f7998718d79379a3c5b39f5359952baf21d # v8.4.2
+            uses: oxsecurity/megalinter@146333030da68e2e58c6ff826633824fabe01eaf # v8.5.0
     
           - name: Archive MegaLinter artifacts
             if: always()
@@ -73,6 +73,6 @@
     
           - name: Upload MegaLinter scan results to GitHub Security tab
             if: success() || failure()
-            uses: github/codeql-action/upload-sarif@5f8171a638ada777af81d42b55959a643bb29017 # v3.28.12
+            uses: github/codeql-action/upload-sarif@1b549b9259bda1cb5ddde3b41741a82a2d15a841 # v3.28.13
             with:
               sarif_file: "megalinter-reports/megalinter-report.sarif"
