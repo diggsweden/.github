@@ -110,7 +110,7 @@
               ref: main
 
           - name: Generate changelog
-            uses: orhun/git-cliff-action@e615672902de82edb33eddcb803a1295fc409525 # v4.5.0
+            uses: orhun/git-cliff-action@98c93442bb05a455a77bee982867857ae748eeea # v4.5.1
             with:
               config: ${{ inputs.changelog-config }} 
             env:
@@ -119,7 +119,7 @@
     
           - name: Generate minimal changelog
             id: minimal-changelog
-            uses: orhun/git-cliff-action@e615672902de82edb33eddcb803a1295fc409525 # v4.5.0
+            uses: orhun/git-cliff-action@98c93442bb05a455a77bee982867857ae748eeea # v4.5.1
             with:
               config: ${{ inputs.minimal-changelog-config }}
               args: --latest --strip header
