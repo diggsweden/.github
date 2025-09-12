@@ -32,7 +32,9 @@ Some GitHub Workflows can be reused in other projects, see the '.github/workflow
 - CommitLint
 - DependencyAnalysis
 - LicenseLint
-- MegaLint - Lint Containers, scripts, code
+- MegaLint - Lint Containers, scripts, code (to be deprecated use misc lint instead)
+- Misc Lint - Mise and Just lint setup 
+- Public Code Lint - Verify that the project has a valid public code yaml
 - OpenSSF-Scorecard - Projecthealth from a security perspective 
 - Versionbump and Changelog - generate a Changelog, in a commit Release, bump project version
 
