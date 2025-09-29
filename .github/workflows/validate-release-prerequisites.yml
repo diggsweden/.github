@@ -1,0 +1,233 @@
+# SPDX-FileCopyrightText: 2024 Digg - Agency for Digital Government
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Description:
+# This workflow validates that all required secrets and configurations
+# are properly set up before attempting a release. It fails fast with
+# clear error messages if anything is missing.
+#
+# Usage:
+# Called automatically as the first step in release-orchestrator.yml
+# Can also be run manually via workflow_dispatch for testing
+---
+name: Validate Release Prerequisites
+
+on:
+  workflow_call: # yamllint disable-line rule:truthy
+    inputs:
+      projectType:
+        description: "Project type: maven, npm"
+        required: true
+        type: string
+      useJReleaser:
+        description: "Whether JReleaser will be used"
+        required: false
+        default: false
+        type: boolean
+      artifactRegistry:
+        description: "Artifact registry: github, npmjs, maven-central"
+        required: false
+        default: "github"
+        type: string
+      containerRegistry:
+        description: "Container registry"
+        required: false
+        default: "ghcr.io"
+        type: string
+      signArtifacts:
+        description: "Whether artifacts will be GPG signed"
+        required: false
+        default: true
+        type: boolean
+
+  workflow_dispatch: # Allow manual validation
+    inputs:
+      projectType:
+        description: "Project type"
+        required: true
+        type: choice
+        options:
+          - maven
+          - npm
+      useJReleaser:
+        description: "Using JReleaser?"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Prerequisites
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate GPG Configuration
+        if: ${{ inputs.signArtifacts }}
+        id: gpg-test
+        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
+        with:
+          gpg_private_key: ${{ secrets.OSPO_BOT_GPG_PRIV }}
+          passphrase: ${{ secrets.OSPO_BOT_GPG_PASS }}
+          git_user_signingkey: true
+      
+      - name: Validate GPG Public Key
+        if: ${{ inputs.signArtifacts }}
+        run: |
+          if [ -z "${{ secrets.OSPO_BOT_GPG_PUB }}" ]; then
+            echo "::error::Missing OSPO_BOT_GPG_PUB secret"
+            echo "This secret is needed for GPG operations and signing"
+            echo "Add it in Settings → Secrets → Actions"
+            exit 1
+          fi
+          echo "✅ GPG public key configured"
+      
+      - name: Validate GitHub Push Token
+        run: |
+          # OSPO_BOT_GHTOKEN is required for pushing version bumps
+          if [ -z "${{ secrets.OSPO_BOT_GHTOKEN }}" ]; then
+            echo "::error::Missing OSPO_BOT_GHTOKEN secret"
+            echo "This token is required for:"
+            echo "  - Pushing version bump commits"
+            echo "  - Moving tags after version bump"
+            echo "  - Pushing changelog updates"
+            echo ""
+            echo "Create a PAT with 'repo' scope and add as OSPO_BOT_GHTOKEN secret"
+            exit 1
+          fi
+          
+          # Test token validity and permissions
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.OSPO_BOT_GHTOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }})
+          
+          if [ "$RESPONSE" != "200" ]; then
+            echo "::error::OSPO_BOT_GHTOKEN is invalid or lacks permissions"
+            echo "HTTP Response: $RESPONSE"
+            echo "Ensure the token has 'repo' scope"
+            exit 1
+          fi
+          
+          echo "✅ GitHub push token validated"
+      
+      - name: Validate Release Token
+        run: |
+          # RELEASE_TOKEN is optional but recommended
+          TOKEN="${{ secrets.RELEASE_TOKEN }}"
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::RELEASE_TOKEN not configured"
+            echo "Will fall back to GITHUB_TOKEN for release creation"
+            echo "Note: GITHUB_TOKEN may have limitations for release creation"
+            
+            # Test if GITHUB_TOKEN can at least read releases
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/${{ github.repository }}/releases)
+            
+            if [ "$RESPONSE" != "200" ]; then
+              echo "::warning::GITHUB_TOKEN may not have sufficient permissions for releases"
+            fi
+          else
+            # Test RELEASE_TOKEN
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: token $TOKEN" \
+              https://api.github.com/repos/${{ github.repository }}/releases)
+            
+            if [ "$RESPONSE" != "200" ]; then
+              echo "::error::RELEASE_TOKEN is invalid or lacks permissions"
+              exit 1
+            fi
+            echo "✅ Release token validated"
+          fi
+      
+      - name: Validate Maven Central Credentials
+        if: ${{ inputs.projectType == 'maven' && inputs.artifactRegistry == 'maven-central' }}
+        run: |
+          if [ -z "${{ secrets.MAVEN_USERNAME }}" ]; then
+            echo "::error::Missing MAVEN_USERNAME secret"
+            echo "Required for publishing to Maven Central"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.MAVEN_CENTRAL_TOKEN }}" ]; then
+            echo "::error::Missing MAVEN_CENTRAL_TOKEN secret"
+            echo "Required for publishing to Maven Central"
+            exit 1
+          fi
+          
+          echo "✅ Maven Central credentials configured"
+      
+      - name: Validate NPM Token
+        if: ${{ inputs.projectType == 'npm' && inputs.artifactRegistry == 'npmjs' }}
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "::error::Missing NPM_TOKEN secret"
+            echo "Required for publishing to npmjs.org"
+            echo "Generate token at https://www.npmjs.com/settings/~/tokens"
+            exit 1
+          fi
+          
+          echo "✅ NPM token configured"
+      
+      - name: Generate Validation Report
+        if: always()
+        run: |
+          echo "## 📋 Release Prerequisites Validation Report"
+          echo ""
+          echo "### Configuration"
+          echo "- **Project Type:** ${{ inputs.projectType }}"
+          echo "- **Artifact Registry:** ${{ inputs.artifactRegistry }}"
+          echo "- **Container Registry:** ${{ inputs.containerRegistry }}"
+          echo "- **JReleaser:** ${{ inputs.useJReleaser && 'Enabled' || 'Disabled' }}"
+          echo "- **GPG Signing:** ${{ inputs.signArtifacts && 'Enabled' || 'Disabled' }}"
+          echo ""
+          
+          echo "### Required Secrets Status"
+          echo ""
+          echo "| Secret | Required For | Status |"
+          echo "|--------|--------------|--------|"
+          
+          # GPG signing (if enabled)
+          if [ "${{ inputs.signArtifacts }}" = "true" ]; then
+            if [ "${{ steps.gpg-test.outcome }}" = "success" ]; then
+              echo "| OSPO_BOT_GPG_PRIV | Signing commits & artifacts | ✅ |"
+              echo "| OSPO_BOT_GPG_PASS | Signing commits & artifacts | ✅ |"
+            else
+              echo "| OSPO_BOT_GPG_PRIV | Signing commits & artifacts | ❌ |"
+              echo "| OSPO_BOT_GPG_PASS | Signing commits & artifacts | ❌ |"
+            fi
+          else
+            echo "| GPG Signing | Disabled | ⏭️ Skipped |"
+          fi
+          
+          if [ -n "${{ secrets.OSPO_BOT_GHTOKEN }}" ]; then
+            echo "| OSPO_BOT_GHTOKEN | Pushing commits | ✅ |"
+          else
+            echo "| OSPO_BOT_GHTOKEN | Pushing commits | ❌ |"
+          fi
+          
+          # GPG Public Key (if signing enabled)
+          if [ "${{ inputs.signArtifacts }}" = "true" ]; then
+            if [ -n "${{ secrets.OSPO_BOT_GPG_PUB }}" ]; then
+              echo "| OSPO_BOT_GPG_PUB | GPP operations | ✅ |"
+            else
+              echo "| OSPO_BOT_GPG_PUB | GPG operations | ❌ |"
+            fi
+          fi
+          
+          if [ -n "${{ secrets.RELEASE_TOKEN }}" ]; then
+            echo "| RELEASE_TOKEN | Creating releases | ✅ |"
+          else
+            echo "| RELEASE_TOKEN | Creating releases | ⚠️ Optional |"
+          fi
+          
+          echo ""
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "### ✅ All required prerequisites are configured!"
+            echo "Ready to proceed with release 🚀"
+          else
+            echo "### ❌ Prerequisites validation failed"
+            echo "Please configure the missing secrets before attempting release"
+          fi

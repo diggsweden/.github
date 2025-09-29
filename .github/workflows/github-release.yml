@@ -30,6 +30,11 @@ on:
         required: false
         default: "Release ${{ github.ref_name }}"
         type: string
+      checkoutRef:
+        description: "Git ref to checkout (branch or tag)"
+        required: false
+        default: "main"
+        type: string
       attachArtifacts:
         description: "Glob patterns for artifacts to attach (newline or comma separated)"
         required: false
@@ -89,11 +94,6 @@ jobs:
         with:
           egress-policy: ${{ inputs.egress-policy }}
 
-      - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          fetch-depth: 0
-
       - name: Import GPG key
         if: ${{ inputs.signArtifacts }}
         id: import-gpg
@@ -103,13 +103,12 @@ jobs:
           passphrase: ${{ secrets.OSPO_BOT_GPG_PASS }}
           git_user_signingkey: true
 
-      - name: Fetch and checkout moved tag
-        run: |
-          # Fetch the latest tags (in case they were moved)
-          git fetch --tags --force
-          
-          # Checkout the current tag position (which may have been moved)
-          git checkout -B temp-branch ${{ github.ref_name }}
+      - name: Checkout repository with moved tag
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ inputs.checkoutRef }}
+          fetch-depth: 0
+          fetch-tags: true
           
       - name: Generate Releasenotes
         uses: orhun/git-cliff-action@d77b37db2e3f7398432d34b72a12aa3e2ba87e51 # v4.6.0
@@ -218,18 +217,15 @@ jobs:
             touch release-notes.md
           fi
 
-      - name: Create GitHub Release
+       - name: Create GitHub Release
         if: ${{ !inputs.useJReleaser }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          # Fetch latest to get moved tags
-          git fetch --tags --force
-          
           # Build command arguments
           ARGS=()
           ARGS+=("${{ github.ref_name }}")
-          ARGS+=("--title" "${{ inputs.releaseName }}")
+          ARGS+=("--title" "${{ github.ref_name }}")
           
           # Add flags
           if [ "${{ inputs.draft }}" = "true" ]; then

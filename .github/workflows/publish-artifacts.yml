@@ -28,6 +28,11 @@ on:
         description: "Project type: maven, npm"
         required: true
         type: string
+      branch:
+        description: "Branch to checkout (default: main)"
+        required: false
+        default: "main"
+        type: string
       registry:
         description: "Target registry: github, npmjs, maven-central"
         required: true
@@ -88,6 +93,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
+          ref: ${{ inputs.branch }}
           fetch-depth: 0
 
       # Maven Setup
@@ -158,7 +164,7 @@ jobs:
         if: ${{ inputs.projectType == 'npm' }}
         working-directory: ${{ inputs.workingDirectory }}
         env:
-          NODE_AUTH_TOKEN: ${{ inputs.registry == 'npmjs' && secrets.NPM_TOKEN || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Install dependencies
           npm ci

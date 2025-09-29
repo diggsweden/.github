@@ -36,6 +36,11 @@ on:
         required: false
         default: "stable"
         type: string
+      branch:
+        description: "Branch to work with (default: main)"
+        required: false
+        default: "main"
+        type: string
       
       # Version and changelog configuration
       skipVersionBump:
@@ -152,8 +157,21 @@ permissions:
   contents: read
 
 jobs:
+  # Step 0: Validate Prerequisites
+  validate-prerequisites:
+    name: Validate Prerequisites
+    secrets: inherit
+    uses: ./.github/workflows/validate-release-prerequisites.yml
+    with:
+      projectType: ${{ inputs.projectType }}
+      useJReleaser: ${{ inputs.useJReleaser }}
+      artifactRegistry: ${{ inputs.artifactRegistry }}
+      containerRegistry: ${{ inputs.containerRegistry }}
+      signArtifacts: ${{ inputs.signArtifacts }}
+
   # Step 1: Version Bump and Changelog Generation
   version-and-changelog:
+    needs: [validate-prerequisites]
     name: Version Bump and Changelog
     if: ${{ !inputs.skipVersionBump }}
     permissions:
@@ -171,7 +189,7 @@ jobs:
   # Step 2: Publish Artifacts
   publish-artifacts:
     name: Publish Artifacts
-    needs: [version-and-changelog]
+    needs: [validate-prerequisites, version-and-changelog]
     # Run even if version-and-changelog was skipped
     if: ${{ !failure() && !cancelled() && !inputs.skipArtifactPublish }}
     permissions:
@@ -182,6 +200,7 @@ jobs:
     uses: ./.github/workflows/publish-artifacts.yml
     with:
       projectType: ${{ inputs.projectType }}
+      branch: ${{ inputs.branch }}
       registry: ${{ inputs.artifactRegistry }}
 
       javaVersion: ${{ inputs.javaVersion }}
@@ -192,7 +211,7 @@ jobs:
   # Step 3: Build and Publish Container
   publish-container:
     name: Publish Container
-    needs: [version-and-changelog, publish-artifacts]
+    needs: [validate-prerequisites, version-and-changelog, publish-artifacts]
     # Run even if previous jobs were skipped (but not failed)
     if: ${{ !failure() && !cancelled() && !inputs.skipContainerPublish }}
     permissions:
@@ -207,6 +226,7 @@ jobs:
     with:
       containerfile: ${{ inputs.containerfile }}
       context: ${{ inputs.workingDirectory }}
+      branch: ${{ inputs.branch }}
       platforms: ${{ inputs.containerPlatforms }}
       enableSLSA: ${{ inputs.containerEnableSLSA }}
       enableSBOM: true
@@ -218,7 +238,7 @@ jobs:
   # Step 4: Create GitHub Release
   create-release:
     name: Create GitHub Release
-    needs: [publish-artifacts, publish-container]
+    needs: [validate-prerequisites, publish-artifacts, publish-container]
     # Run even if previous jobs were skipped but at least one succeeded
     if: ${{ !failure() && !cancelled() && !inputs.skipGitHubRelease }}
     permissions:
@@ -229,6 +249,7 @@ jobs:
     uses: ./.github/workflows/github-release.yml
     with:
       releaseName: "${{ github.ref_name }}"
+      checkoutRef: ${{ inputs.branch }}
       attachArtifacts: ${{ inputs.attachArtifacts }}
       generateSBOM: ${{ inputs.generateSBOM }}
       signArtifacts: ${{ inputs.signArtifacts }}
@@ -250,6 +271,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ inputs.branch }}
 
       - name: Validate release artifacts
         env:
