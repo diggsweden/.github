@@ -34,11 +34,17 @@
             required: false
             default: "main"
             type: string
+          projectType:
+            description: "Project type: maven, npm"
+            required: true
+            type: string
           updatePom:
-            description: "Whether to update a POM version (default: false)"
+            description: "Whether to update a POM version (deprecated - use projectType)"
             required: false
             default: false
             type: boolean
+
+
           changelog-config:
             description: "Configuration for the full changelog (default: keepachangelog)"
             required: false
@@ -91,8 +97,15 @@
               git_commit_gpgsign: true
               git_config_global: true
 
-          - name: Update POM version
-            if: ${{ inputs.updatePom }}
+          - name: Set project type
+            id: project-type
+            run: |
+              PROJECT_TYPE="${{ inputs.projectType }}"
+              echo "Project type: ${PROJECT_TYPE}"
+              echo "type=${PROJECT_TYPE}" >> "$GITHUB_OUTPUT"
+
+          - name: Update Maven version
+            if: ${{ (inputs.updatePom || steps.project-type.outputs.type == 'maven') }}
             env:
               GITHUB_ACTOR: ${{ github.actor }}
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -101,6 +114,18 @@
               TAG="${GITHUB_REF_NAME#v}"
               echo "Version: ${TAG}"
               mvn $MAVEN_CLI_OPTS versions:set -DnewVersion="${TAG}" -DgenerateBackupPoms=false -DskipTests
+
+          - name: Update NPM version
+            if: ${{ steps.project-type.outputs.type == 'npm' }}
+            run: |
+              echo "Tag: ${GITHUB_REF_NAME}"
+              TAG="${GITHUB_REF_NAME#v}"
+              echo "Version: ${TAG}"
+              
+              # Always use version from tag
+              npm version "${TAG}" --no-git-tag-version --allow-same-version
+
+
           
           - name: Fetch git-cliff templates
             uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0

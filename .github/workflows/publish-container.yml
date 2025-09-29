@@ -1,0 +1,323 @@
+# SPDX-FileCopyrightText: 2024 Digg - Agency for Digital Government
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Description:
+# This workflow handles standardized container image publishing with optional SLSA provenance.
+# It supports multi-platform builds, vulnerability scanning, and SBOM generation.
+#
+# Usage:
+# 1. Add the following to your workflow file:
+#    jobs:
+#      container:
+#        uses: diggsweden/.github/.github/workflows/publish-container.yml@main
+#        with:
+#          platforms: "linux/amd64,linux/arm64"
+#          enableSLSA: true
+#
+# 2. Ensure your repository has a Dockerfile or Containerfile
+#
+# 3. The workflow will build, scan, and publish container images with provenance
+---
+name: Publish Container Image
+
+on:
+  workflow_call: # yamllint disable-line rule:truthy
+    inputs:
+      containerfile:
+        description: "Containerfile path"
+        required: false
+        default: "Containerfile"
+        type: string
+      context:
+        description: "Build context directory"
+        required: false
+        default: "."
+        type: string
+      platforms:
+        description: "Target platforms (comma-separated)"
+        required: false
+        default: "linux/amd64"
+        type: string
+      enableSLSA:
+        description: "Generate SLSA provenance"
+        required: false
+        default: true
+        type: boolean
+      enableSBOM:
+        description: "Generate and attach SBOM"
+        required: false
+        default: true
+        type: boolean
+      enableScan:
+        description: "Enable vulnerability scanning"
+        required: false
+        default: true
+        type: boolean
+      registry:
+        description: "Container registry"
+        required: false
+        default: "ghcr.io"
+        type: string
+      imageName:
+        description: "Custom image name (defaults to repository name)"
+        required: false
+        type: string
+      imageTagStrategy:
+        description: "Tagging strategy: semver, branch, sha, custom"
+        required: false
+        default: "semver"
+        type: string
+      customTags:
+        description: "Custom tags (when imageTagStrategy is custom)"
+        required: false
+        type: string
+      buildArgs:
+        description: "Docker build arguments (KEY=VALUE format, one per line)"
+        required: false
+        type: string
+      buildSecrets:
+        description: "Build secrets to pass (KEY=VALUE format, one per line)"
+        required: false
+        type: string
+      pushImage:
+        description: "Push image to registry"
+        required: false
+        default: true
+        type: boolean
+      cacheFrom:
+        description: "Cache sources for build"
+        required: false
+        default: "type=gha"
+        type: string
+      cacheTo:
+        description: "Cache destinations for build"
+        required: false
+        default: "type=gha,mode=max"
+        type: string
+      egress-policy:
+        description: "Egress policy for the Harden Runner step"
+        required: false
+        default: "audit"
+        type: string
+    outputs:
+      image:
+        description: "Full image name with registry"
+        value: ${{ jobs.build-and-push.outputs.image }}
+      digest:
+        description: "Image digest"
+        value: ${{ jobs.build-and-push.outputs.digest }}
+      metadata:
+        description: "Image metadata JSON"
+        value: ${{ jobs.build-and-push.outputs.metadata }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and Push Container
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # Required for SLSA provenance
+      security-events: write  # Required for security scanning
+      actions: read   # Required for SLSA provenance v2
+    
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+      metadata: ${{ steps.metadata.outputs.json }}
+    
+    steps:
+      - name: Harden GitHub runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: ${{ inputs.egress-policy }}
+
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Verify Containerfile
+        id: containerfile
+        run: |
+          CONTAINERFILE="${{ inputs.containerfile }}"
+          
+          # Verify the file exists
+          if [ ! -f "$CONTAINERFILE" ]; then
+            echo "Error: Containerfile '$CONTAINERFILE' not found"
+            exit 1
+          fi
+          
+          echo "Using containerfile: $CONTAINERFILE"
+          echo "containerfile=$CONTAINERFILE" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Log in to Container Registry
+        if: ${{ inputs.pushImage }}
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: ${{ inputs.pushImage && inputs.registry == 'docker.io' }}
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Determine Image Name
+        id: image-name
+        run: |
+          if [ -n "${{ inputs.imageName }}" ]; then
+            IMAGE_NAME="${{ inputs.imageName }}"
+          else
+            # Default to repository name
+            IMAGE_NAME="${{ github.repository }}"
+          fi
+          
+          # Add registry prefix if not already present
+          if [[ "$IMAGE_NAME" != *"/"* ]] || [[ "$IMAGE_NAME" != *"."* ]]; then
+            if [ "${{ inputs.registry }}" = "docker.io" ]; then
+              IMAGE_NAME="${{ github.repository_owner }}/$IMAGE_NAME"
+            else
+              IMAGE_NAME="${{ inputs.registry }}/$IMAGE_NAME"
+            fi
+          fi
+          
+          echo "Image name: $IMAGE_NAME"
+          echo "name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Extract Image Metadata
+        id: metadata
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        with:
+          images: ${{ steps.image-name.outputs.name }}
+          flavor: |
+            latest=${{ inputs.imageTagStrategy == 'semver' && github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
+          tags: |
+            # Semver tags
+            type=semver,pattern={{version}},enable=${{ inputs.imageTagStrategy == 'semver' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.imageTagStrategy == 'semver' }}
+            type=semver,pattern={{major}},enable=${{ inputs.imageTagStrategy == 'semver' && github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
+            
+            # Branch-based tags
+            type=ref,event=branch,enable=${{ inputs.imageTagStrategy == 'branch' || inputs.imageTagStrategy == 'semver' }}
+            type=ref,event=pr,enable=${{ inputs.imageTagStrategy == 'branch' }}
+            
+            # SHA-based tags
+            type=sha,prefix={{branch}}-,enable=${{ inputs.imageTagStrategy == 'sha' }}
+            type=raw,value={{branch}}-{{date 'YYYYMMDD'}}-{{sha}},enable=${{ inputs.imageTagStrategy == 'sha' }}
+            
+            # Custom tags
+            type=raw,value=${{ inputs.customTags }},enable=${{ inputs.imageTagStrategy == 'custom' && inputs.customTags != '' }}
+
+      - name: Build Container Image
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ steps.containerfile.outputs.containerfile }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.pushImage }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: ${{ inputs.cacheFrom }}
+          cache-to: ${{ inputs.cacheTo }}
+          build-args: ${{ inputs.buildArgs }}
+          secrets: ${{ inputs.buildSecrets }}
+          provenance: ${{ inputs.enableSLSA && 'mode=max' || 'false' }}
+          sbom: ${{ inputs.enableSBOM }}
+          outputs: type=image,name=${{ steps.image-name.outputs.name }},push-by-digest=${{ inputs.enableSLSA }},name-canonical=${{ inputs.enableSLSA }},push=${{ inputs.pushImage }}
+
+      - name: Export digest
+        if: ${{ inputs.pushImage && inputs.enableSLSA }}
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: ${{ inputs.pushImage && inputs.enableSLSA }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: digests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Scan Container Image
+        if: ${{ inputs.enableScan && inputs.pushImage }}
+        uses: aquasecurity/trivy-action@a8de7a5610918bc6f59db82e98c98f0088fe615e # v0.30.0
+        with:
+          image-ref: ${{ steps.image-name.outputs.name }}@${{ steps.build.outputs.digest }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          vuln-type: 'os,library'
+
+      - name: Upload Trivy scan results
+        if: ${{ inputs.enableScan && inputs.pushImage }}
+        uses: github/codeql-action/upload-sarif@f1f6e5f6af878fb37288ce1c627459e94dbf7d01 # v3.30.1
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'container-scan'
+
+      - name: Generate SBOM with Syft
+        if: ${{ inputs.enableSBOM && inputs.pushImage }}
+        uses: anchore/sbom-action@3b94a03b1fdb2e7dc702f16cf3b47023e0e64a5c # v0.18.3
+        with:
+          image: ${{ steps.image-name.outputs.name }}@${{ steps.build.outputs.digest }}
+          format: 'spdx-json'
+          output-file: 'container-sbom.spdx.json'
+
+      - name: Upload SBOM
+        if: ${{ inputs.enableSBOM && inputs.pushImage }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: container-sbom-${{ github.run_id }}
+          path: container-sbom.spdx.json
+          retention-days: 30
+
+      - name: Attest SBOM
+        if: ${{ inputs.enableSBOM && inputs.pushImage && inputs.enableSLSA }}
+        uses: actions/attest-sbom@c9f05ba84b4a2db3a3fb64179e93c96f1c1a2d81 # v2.0.0
+        with:
+          subject-name: ${{ steps.image-name.outputs.name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          sbom-path: 'container-sbom.spdx.json'
+          push-to-registry: true
+
+      - name: Output image details
+        id: image
+        run: |
+          IMAGE_NAME="${{ steps.image-name.outputs.name }}"
+          echo "image=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "Image: $IMAGE_NAME"
+          echo "Digest: ${{ steps.build.outputs.digest }}"
+          echo "Metadata: ${{ steps.metadata.outputs.json }}"
+
+  # Generate SLSA provenance (called as separate job if enabled)
+  provenance:
+    needs: [build-and-push]
+    if: ${{ inputs.pushImage && inputs.enableSLSA && startsWith(github.ref, 'refs/tags/') }}
+    permissions:
+      actions: read
+      id-token: write
+      packages: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
+    with:
+      image: ${{ needs.build-and-push.outputs.image }}
+      digest: ${{ needs.build-and-push.outputs.digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
