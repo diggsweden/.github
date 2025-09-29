@@ -131,11 +131,6 @@ on:
         type: boolean
       
       # Advanced configuration
-      branch:
-        description: "Branch to release from"
-        required: false
-        default: "main"
-        type: string
       javaVersion:
         description: "Java version for Maven projects"
         required: false
