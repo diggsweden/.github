@@ -124,6 +124,7 @@ jobs:
       id-token: write  # Required for SLSA provenance
       security-events: write  # Required for security scanning
       actions: read   # Required for SLSA provenance v2
+      attestations: write  # Required for SBOM attestation
     
     outputs:
       image: ${{ steps.image.outputs.image }}
