@@ -257,7 +257,7 @@ jobs:
 
       - name: Scan Container Image
         if: ${{ inputs.enableScan && inputs.pushImage }}
-        uses: aquasecurity/trivy-action@a8de7a5610918bc6f59db82e98c98f0088fe615e # v0.30.0
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
         with:
           image-ref: ${{ steps.image-name.outputs.name }}@${{ steps.build.outputs.digest }}
           format: 'sarif'
@@ -274,7 +274,7 @@ jobs:
 
       - name: Generate SBOM with Syft
         if: ${{ inputs.enableSBOM && inputs.pushImage }}
-        uses: anchore/sbom-action@3b94a03b1fdb2e7dc702f16cf3b47023e0e64a5c # v0.18.3
+        uses: anchore/sbom-action@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
         with:
           image: ${{ steps.image-name.outputs.name }}@${{ steps.build.outputs.digest }}
           format: 'spdx-json'

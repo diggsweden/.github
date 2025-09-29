@@ -191,7 +191,7 @@ jobs:
       # Generate SBOM for published artifacts
       - name: Generate SBOM
         if: always()
-        uses: anchore/sbom-action@3b94a03b1fdb2e7dc702f16cf3b47023e0e64a5c # v0.18.3
+        uses: anchore/sbom-action@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
         with:
           path: ${{ inputs.workingDirectory }}
           format: 'spdx-json'
