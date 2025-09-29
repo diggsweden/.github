@@ -193,7 +193,7 @@ jobs:
   publish-container:
     name: Publish Container
     needs: [version-and-changelog, publish-artifacts]
-    # Run even if previous jobs were skipped
+    # Run even if previous jobs were skipped (but not failed)
     if: ${{ !failure() && !cancelled() && !inputs.skipContainerPublish }}
     permissions:
       contents: read

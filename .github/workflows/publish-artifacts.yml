@@ -142,6 +142,17 @@ jobs:
             mvn $MAVEN_CLI_OPTS deploy -DskipTests -P release
           fi
 
+      - name: Upload Maven artifacts for container build
+        if: ${{ inputs.projectType == 'maven' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: maven-artifacts
+          path: |
+            target/*.jar
+            !target/*-sources.jar
+            !target/*-javadoc.jar
+          retention-days: 1
+
       # NPM Build and Publish
       - name: Build and Publish NPM
         if: ${{ inputs.projectType == 'npm' }}
@@ -174,6 +185,16 @@ jobs:
           else
             npm publish --tag "$TAG"
           fi
+
+      - name: Upload NPM artifacts for container build
+        if: ${{ inputs.projectType == 'npm' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-artifacts
+          path: |
+            dist/
+            build/
+          retention-days: 1
 
       # Generate SBOM for published artifacts
       - name: Generate SBOM
