@@ -56,10 +56,9 @@
             default: ".github-templates/gitcliff-templates/minimal.toml "
             type: string
           file_pattern:
-            description: 'Pattern for files to commit, space separated (default: CHANGELOG.md)'
+            description: 'Pattern for files to commit, space separated'
             required: false
             type: string
-            default: 'CHANGELOG.md'
           egress-policy:
             description: "Egress policy for the Harden Runner step (e.g., audit, block)"
             required: false
@@ -160,7 +159,7 @@
                 ${{ steps.minimal-changelog.outputs.content }}
     
                 [skip ci]
-              file_pattern: ${{ inputs.file_pattern || 'CHANGELOG.md pom.xml package.json' }}
+              file_pattern: ${{ inputs.file_pattern || 'CHANGELOG.md pom.xml package.json package-lock.json' }}
               commit_author: "${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
               commit_user_name: ${{ steps.import-gpg.outputs.name }}
               commit_user_email: ${{ steps.import-gpg.outputs.email }}

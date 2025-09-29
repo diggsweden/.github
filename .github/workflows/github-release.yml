@@ -94,6 +94,13 @@ jobs:
         with:
           egress-policy: ${{ inputs.egress-policy }}
 
+      - name: Checkout repository with moved tag
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ inputs.checkoutRef }}
+          fetch-depth: 0
+          fetch-tags: true
+
       - name: Import GPG key
         if: ${{ inputs.signArtifacts }}
         id: import-gpg
@@ -102,13 +109,6 @@ jobs:
           gpg_private_key: ${{ secrets.OSPO_BOT_GPG_PRIV }}
           passphrase: ${{ secrets.OSPO_BOT_GPG_PASS }}
           git_user_signingkey: true
-
-      - name: Checkout repository with moved tag
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          ref: ${{ inputs.checkoutRef }}
-          fetch-depth: 0
-          fetch-tags: true
           
       - name: Generate Releasenotes
         uses: orhun/git-cliff-action@d77b37db2e3f7398432d34b72a12aa3e2ba87e51 # v4.6.0
