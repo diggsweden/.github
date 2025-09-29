@@ -32,10 +32,7 @@ on:
         description: "Target registry: github, npmjs, maven-central"
         required: true
         type: string
-      buildCommand:
-        description: "Custom build command (optional)"
-        required: false
-        type: string
+
 
       prePublishScript:
         description: "Script to run before publishing"
@@ -132,14 +129,9 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
         run: |
-          # Build command
-          if [ -n "${{ inputs.buildCommand }}" ]; then
-            ${{ inputs.buildCommand }}
-          else
-            # Default Maven build
-            # shellcheck disable=SC2086
-            mvn $MAVEN_CLI_OPTS clean package -DskipTests
-          fi
+          # Default Maven build
+          # shellcheck disable=SC2086
+          mvn $MAVEN_CLI_OPTS clean package -DskipTests
           
           # Publish to registry
           if [ "${{ inputs.registry }}" = "github" ]; then
@@ -160,14 +152,9 @@ jobs:
           # Install dependencies
           npm ci
           
-          # Build command
-          if [ -n "${{ inputs.buildCommand }}" ]; then
-            ${{ inputs.buildCommand }}
-          else
-            # Default NPM build if script exists
-            if npm run | grep -q "build"; then
-              npm run build
-            fi
+          # Default NPM build if script exists
+          if npm run | grep -q "build"; then
+            npm run build
           fi
           
           # Determine publish tag

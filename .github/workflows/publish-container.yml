@@ -290,7 +290,7 @@ jobs:
 
       - name: Attest SBOM
         if: ${{ inputs.enableSBOM && inputs.pushImage && inputs.enableSLSA }}
-        uses: actions/attest-sbom@c9f05ba84b4a2db3a3fb64179e93c96f1c1a2d81 # v2.0.0
+        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3.0.0
         with:
           subject-name: ${{ steps.image-name.outputs.name }}
           subject-digest: ${{ steps.build.outputs.digest }}
