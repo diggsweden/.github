@@ -177,7 +177,6 @@ jobs:
     with:
       branch: ${{ inputs.branch }}
       projectType: ${{ inputs.projectType }}
-
       changelog-config: ${{ inputs.changelogConfig }}
 
 
