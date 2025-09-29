@@ -192,8 +192,8 @@ jobs:
   # Step 3: Build and Publish Container
   publish-container:
     name: Publish Container
-    needs: [version-and-changelog]
-    # Run even if version-and-changelog was skipped
+    needs: [version-and-changelog, publish-artifacts]
+    # Run even if previous jobs were skipped
     if: ${{ !failure() && !cancelled() && !inputs.skipContainerPublish }}
     permissions:
       contents: read
