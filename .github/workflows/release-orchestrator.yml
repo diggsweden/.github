@@ -228,7 +228,7 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/github-release.yml
     with:
-      releaseName: "Release ${{ github.ref_name }}"
+      releaseName: "${{ github.ref_name }}"
       attachArtifacts: ${{ inputs.attachArtifacts }}
       generateSBOM: ${{ inputs.generateSBOM }}
       signArtifacts: ${{ inputs.signArtifacts }}

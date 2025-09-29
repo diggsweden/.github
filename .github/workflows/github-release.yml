@@ -103,6 +103,14 @@ jobs:
           passphrase: ${{ secrets.OSPO_BOT_GPG_PASS }}
           git_user_signingkey: true
 
+      - name: Fetch and checkout moved tag
+        run: |
+          # Fetch the latest tags (in case they were moved)
+          git fetch --tags --force
+          
+          # Checkout the current tag position (which may have been moved)
+          git checkout -B temp-branch ${{ github.ref_name }}
+          
       - name: Generate Releasenotes
         uses: orhun/git-cliff-action@d77b37db2e3f7398432d34b72a12aa3e2ba87e51 # v4.6.0
         with:
@@ -215,6 +223,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
+          # Fetch latest to get moved tags
+          git fetch --tags --force
+          
           # Build command arguments
           ARGS=()
           ARGS+=("${{ github.ref_name }}")
