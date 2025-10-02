@@ -32,7 +32,6 @@
 # Required Permissions:
 #   contents: write  # Create releases if using JReleaser
 #   packages: write  # Backup publish to GitHub Packages
-#   issues: write    # Update issues if using JReleaser
 #
 # Generated Artifacts:
 #   - *.jar: Main library JAR
@@ -102,7 +101,6 @@ jobs:
       contents: write
       packages: write
       id-token: write
-      issues: write
     
     steps:
       - name: Checkout repository
