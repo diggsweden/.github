@@ -175,19 +175,20 @@
               commit_user_name: ${{ steps.import-gpg.outputs.name }}
               commit_user_email: ${{ steps.import-gpg.outputs.email }}
               commit_options: " --signoff"
-              skip_fetch: true
     
           - name: Move tag to current commit
             run: |
               LATEST_TAG=$(git describe --tags --abbrev=0)
-    
               PREV_SHA=$(git rev-parse HEAD~1)
               TAG_SHA=$(git rev-list -n 1 "$LATEST_TAG")
     
               if [ "$TAG_SHA" = "$PREV_SHA" ]; then
+                echo "Moving tag $LATEST_TAG from previous commit to current"
                 git tag -f -s "$LATEST_TAG" -m "$LATEST_TAG"
                 git push --force origin "$LATEST_TAG"
               else
-                echo "Tag $LATEST_TAG not pointing to previous commit as expected"
+                echo "❌ Tag $LATEST_TAG points to unexpected commit"
+                echo "Expected: $PREV_SHA (HEAD~1)"
+                echo "Found: $TAG_SHA"
                 exit 1
               fi
