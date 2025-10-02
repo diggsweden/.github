@@ -10,7 +10,7 @@
 #
 # How it works:
 # 1. Downloads build artifacts from previous jobs (Maven JARs, NPM dist)
-# 2. Sets up Docker Buildx for multi-platform builds
+# 2. Sets up Buildx for multi-platform builds
 # 3. Builds container image for specified platforms (amd64, arm64)
 # 4. Scans image for vulnerabilities using Trivy
 # 5. Generates SBOM in multiple formats (CycloneDX, SPDX)
@@ -109,7 +109,7 @@ on:
         required: false
         type: string
       buildArgs:
-        description: "Docker build arguments (KEY=VALUE format, one per line)"
+        description: "Build arguments (KEY=VALUE format, one per line)"
         required: false
         type: string
       buildSecrets:
@@ -211,7 +211,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
 
-      - name: Set up Docker Buildx
+      - name: Set up Buildx
         id: buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 

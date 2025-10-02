@@ -436,9 +436,10 @@ jobs:
           
           # Check if commit is signed
           COMMIT_SIGNATURE="Not signed"
-          if git log -1 --show-signature $COMMIT_SHA 2>&1 | grep -q "Good signature"; then
+          COMMIT_CONTENT=$(git cat-file commit $COMMIT_SHA)
+          if echo "$COMMIT_CONTENT" | grep -q "BEGIN PGP SIGNATURE"; then
             COMMIT_SIGNATURE="✅ GPG signed"
-          elif git log -1 --show-signature $COMMIT_SHA 2>&1 | grep -q "Good \"git\" signature"; then
+          elif echo "$COMMIT_CONTENT" | grep -q "BEGIN SSH SIGNATURE"; then
             COMMIT_SIGNATURE="✅ SSH signed"
           fi
           

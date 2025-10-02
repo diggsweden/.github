@@ -364,11 +364,16 @@ jobs:
           | Property | Value |
           |----------|-------|
           | **Version** | `${{ github.ref_name }}` |
-          | **Type** | ${{ inputs.releaseType == 'stable' && 'Stable' || contains(github.ref_name, 'alpha') && 'Alpha' || contains(github.ref_name, 'beta') && 'Beta' || contains(github.ref_name, 'rc') && 'Release Candidate' || 'Development' }} |
+          | **Type** | ${{ inputs.releaseType == 'stable' && 'Stable' || contains(github.ref_name, '-alpha') && 'Alpha' || contains(github.ref_name, '-beta') && 'Beta' || contains(github.ref_name, '-rc') && 'Release Candidate' || contains(github.ref_name, '-snapshot') && 'Snapshot' || contains(github.ref_name, '-SNAPSHOT') && 'Snapshot' || 'Stable' }} |
           | **Source Branch** | `${{ inputs.branch }}` |
           | **Commit** | `${{ github.sha }}` |
           | **Released By** | @${{ github.actor }} |
-          | **Released At** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |
+          EOF
+          
+          # Add current timestamp
+          echo "| **Released At** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+          
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
           
           ## What Was Published
           | Component | Status | Details |
@@ -433,9 +438,24 @@ jobs:
           
           # Add SLSA info if container was built
           if [ "${{ inputs.containerBuilder }}" = "containerimage-ghcr" ] && [ "${{ needs.publish-container.result }}" = "success" ]; then
-            echo "| **SLSA Provenance** | ${{ inputs['container.enableslsa'] && '✅ Level 3' || '⏭️ Disabled' }} | Supply chain attestation |" >> $GITHUB_STEP_SUMMARY
-            echo "| **SBOM** | ${{ inputs['container.enablesbom'] && '✅ Generated' || '⏭️ Disabled' }} | CycloneDX & SPDX formats |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Vulnerability Scan** | ${{ inputs['container.enablescan'] && '✅ Completed' || '⏭️ Disabled' }} | Trivy scanner |" >> $GITHUB_STEP_SUMMARY
+            CONTAINER_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            if [ "${{ inputs['container.enableslsa'] }}" = "true" ]; then
+              echo "| **SLSA Provenance** | ✅ Level 3 | [View Attestation](https://github.com/${{ github.repository }}/attestations) |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **SLSA Provenance** | ⏭️ Disabled | Not configured |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ inputs['container.enablesbom'] }}" = "true" ]; then
+              echo "| **SBOM** | ✅ Generated | Available in container registry |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **SBOM** | ⏭️ Disabled | Not configured |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ inputs['container.enablescan'] }}" = "true" ]; then
+              echo "| **Vulnerability Scan** | ✅ Completed | [Security tab](https://github.com/${{ github.repository }}/security/code-scanning) |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **Vulnerability Scan** | ⏭️ Disabled | Not configured |" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
           
           # Quick start section
@@ -480,7 +500,10 @@ jobs:
           - **[All Packages](https://github.com/${{ github.repository }}/packages)** - Package registry
           - **[All Releases](https://github.com/${{ github.repository }}/releases)** - Release history
           
-          ---
-          *Release workflow completed at $(date -u '+%Y-%m-%d %H:%M:%S UTC')* • [View all workflows](https://github.com/${{ github.repository }}/actions)
           EOF
+          
+          # Add footer with actual timestamp
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Release workflow completed at $(date -u '+%Y-%m-%d %H:%M:%S UTC')* • [View all workflows](https://github.com/${{ github.repository }}/actions)" >> $GITHUB_STEP_SUMMARY
 
