@@ -204,6 +204,7 @@ on:
         description: "Files to commit in version bump (default: CHANGELOG.md pom.xml). NPM projects should set to 'CHANGELOG.md package.json package-lock.json'"
         required: false
         type: string
+        default: 'CHANGELOG.md pom.xml'
 
 permissions:
   contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
