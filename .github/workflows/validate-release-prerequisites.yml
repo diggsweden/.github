@@ -104,7 +104,6 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref }}  # Explicitly fetch the tag ref
           fetch-tags: true
-          token: ${{ secrets.OSPO_BOT_GHTOKEN }}
       
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0

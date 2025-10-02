@@ -122,7 +122,6 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.checkoutRef }}
           fetch-tags: true
-          token: ${{ secrets.OSPO_BOT_GHTOKEN }}
 
       - name: Import GPG key
         if: ${{ inputs.signArtifacts }}
