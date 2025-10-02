@@ -2,10 +2,38 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Description:
-# This workflow validates that all required secrets and configurations
-# are properly set up before attempting a release. It fails fast with
-# clear error messages if anything is missing.
+# Release Prerequisites Validator
+# 
+# Purpose: Validates that all requirements for a successful release are met before
+# attempting the actual release process. Prevents failed releases by checking
+# credentials, permissions, and configuration early in the process.
+#
+# How it works:
+# 1. Verifies tag format matches expected pattern
+# 2. Checks tag version matches project version (pom.xml/package.json)
+# 3. Validates all required secrets are present and valid
+# 4. Tests authentication to target registries (Maven Central, NPM, ghcr.io)
+# 5. Verifies GPG keys are valid and not expired
+# 6. Checks user authorization for non-SNAPSHOT releases (if configured)
+# 7. Generates detailed validation report
+#
+# Security controls:
+# - Never logs secret values, only validation status
+# - Checks GPG key expiration dates
+# - Validates user is in authorized developers list (if enabled)
+# - Verifies registry credentials before attempting publish
+#
+# Required Secrets (depending on configuration):
+#   GPG_SECRET_KEY: For signature validation
+#   GPG_PASSPHRASE: For signature validation
+#   MAVEN_CENTRAL_USERNAME: For Maven Central auth check
+#   MAVEN_CENTRAL_PASSWORD: For Maven Central auth check
+#   NPM_TOKEN: For NPM registry auth check
+#   AUTHORIZED_DEVELOPERS: Comma-separated list of authorized users
+#
+# Required Permissions:
+#   contents: read   # Read version files
+#   packages: read   # Verify package registry access
 #
 # Usage:
 # Called automatically as the first step in release-orchestrator.yml
@@ -25,10 +53,9 @@ on:
         required: false
         default: false
         type: boolean
-      artifactRegistry:
-        description: "Artifact registry: github, npmjs, maven-central"
+      artifactPublisher:
+        description: "Artifact publisher being used"
         required: false
-        default: "github"
         type: string
       containerRegistry:
         description: "Container registry"
@@ -39,6 +66,11 @@ on:
         description: "Whether artifacts will be GPG signed"
         required: false
         default: true
+        type: boolean
+      checkAuthorization:
+        description: "Check if user is authorized for non-SNAPSHOT releases"
+        required: false
+        default: false
         type: boolean
 
   workflow_dispatch: # Allow manual validation
@@ -57,7 +89,7 @@ on:
         default: false
 
 permissions:
-  contents: read
+  contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
 
 jobs:
   validate:
@@ -68,6 +100,41 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 1
+      
+      - name: Check Release Authorization
+        if: ${{ inputs.checkAuthorization }}
+        run: |
+          # Check if this is a SNAPSHOT release
+          TAG_NAME="${{ github.ref_name }}"
+          if [[ "${TAG_NAME}" == *-SNAPSHOT ]]; then
+            echo "✅ SNAPSHOT release - authorization check skipped"
+            exit 0
+          fi
+          
+          # For non-SNAPSHOT releases, check if actor is authorized
+          AUTHORIZED_DEVS="${{ secrets.AUTHORIZED_RELEASE_DEVELOPERS }}"
+          ACTOR="${{ github.actor }}"
+          
+          if [ -z "$AUTHORIZED_DEVS" ]; then
+            echo "::warning::AUTHORIZED_RELEASE_DEVELOPERS secret not configured"
+            echo "All users with tag push access can create releases"
+            echo "✅ Authorization check passed (no restrictions configured)"
+            exit 0
+          fi
+          
+          # Check if current actor is in the authorized list
+          if echo ",$AUTHORIZED_DEVS," | grep -q ",$ACTOR,"; then
+            echo "✅ User '$ACTOR' is authorized to create production releases"
+          else
+            echo "::error::User '$ACTOR' is not authorized to create non-SNAPSHOT releases"
+            echo "Only the following users can create production releases:"
+            echo "$AUTHORIZED_DEVS" | tr ',' '\n' | sed 's/^/  - /'
+            echo ""
+            echo "If you need to create a release, please:"
+            echo "1. Contact one of the authorized developers"
+            echo "2. Or create a SNAPSHOT release instead (tag with -SNAPSHOT suffix)"
+            exit 1
+          fi
       
       - name: Validate GPG Configuration
         if: ${{ inputs.signArtifacts }}
@@ -148,16 +215,16 @@ jobs:
           fi
       
       - name: Validate Maven Central Credentials
-        if: ${{ inputs.projectType == 'maven' && inputs.artifactRegistry == 'maven-central' }}
+        if: ${{ inputs.artifactPublisher == 'maven-lib-mavencentral' }}
         run: |
-          if [ -z "${{ secrets.MAVEN_USERNAME }}" ]; then
-            echo "::error::Missing MAVEN_USERNAME secret"
+          if [ -z "${{ secrets.MAVENCENTRAL_USERNAME }}" ]; then
+            echo "::error::Missing MAVENCENTRAL_USERNAME secret"
             echo "Required for publishing to Maven Central"
             exit 1
           fi
           
-          if [ -z "${{ secrets.MAVEN_CENTRAL_TOKEN }}" ]; then
-            echo "::error::Missing MAVEN_CENTRAL_TOKEN secret"
+          if [ -z "${{ secrets.MAVENCENTRAL_PASSWORD }}" ]; then
+            echo "::error::Missing MAVENCENTRAL_PASSWORD secret"
             echo "Required for publishing to Maven Central"
             exit 1
           fi
@@ -165,7 +232,7 @@ jobs:
           echo "✅ Maven Central credentials configured"
       
       - name: Validate NPM Token
-        if: ${{ inputs.projectType == 'npm' && inputs.artifactRegistry == 'npmjs' }}
+        if: ${{ inputs.artifactPublisher == 'npm-app-npmjs' }}
         run: |
           if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
             echo "::error::Missing NPM_TOKEN secret"
@@ -183,7 +250,7 @@ jobs:
           echo ""
           echo "### Configuration"
           echo "- **Project Type:** ${{ inputs.projectType }}"
-          echo "- **Artifact Registry:** ${{ inputs.artifactRegistry }}"
+          echo "- **Artifact Publisher:** ${{ inputs.artifactPublisher }}"
           echo "- **Container Registry:** ${{ inputs.containerRegistry }}"
           echo "- **JReleaser:** ${{ inputs.useJReleaser && 'Enabled' || 'Disabled' }}"
           echo "- **GPG Signing:** ${{ inputs.signArtifacts && 'Enabled' || 'Disabled' }}"

@@ -2,24 +2,51 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Description:
-# This workflow handles standardized container image publishing with optional SLSA provenance.
-# It supports multi-platform builds, vulnerability scanning, and SBOM generation.
+# Container Image Builder for GHCR
+# 
+# Purpose: Builds and publishes production-grade container images to GitHub Container
+# Registry (ghcr.io) with comprehensive security features including multi-platform
+# support, vulnerability scanning, SBOM generation, and SLSA attestation.
 #
-# Usage:
-# 1. Add the following to your workflow file:
-#    jobs:
-#      container:
-#        uses: diggsweden/.github/.github/workflows/publish-container.yml@main
-#        with:
-#          platforms: "linux/amd64,linux/arm64"
-#          enableSLSA: true
+# How it works:
+# 1. Downloads build artifacts from previous jobs (Maven JARs, NPM dist)
+# 2. Sets up Docker Buildx for multi-platform builds
+# 3. Builds container image for specified platforms (amd64, arm64)
+# 4. Scans image for vulnerabilities using Trivy
+# 5. Generates SBOM in multiple formats (CycloneDX, SPDX)
+# 6. Creates SLSA provenance attestation for supply chain security
+# 7. Pushes image with all attestations to ghcr.io
 #
-# 2. Ensure your repository has a Dockerfile or Containerfile
+# Security controls:
+# - SLSA Level 3 provenance attestation
+# - Vulnerability scanning with severity thresholds
+# - SBOM generation for dependency transparency
+# - Signed attestations attached to image
+# - Security scan results uploaded to GitHub
 #
-# 3. The workflow will build, scan, and publish container images with provenance
+# Required Secrets:
+#   None - uses GITHUB_TOKEN for ghcr.io authentication
+#
+# Required Permissions:
+#   contents: read         # Read Containerfile and context
+#   packages: write        # Push images to ghcr.io
+#   id-token: write       # Generate OIDC token for SLSA
+#   security-events: write # Upload vulnerability scan results
+#   attestations: write   # Attach SBOM attestation
+#   actions: read         # Read workflow for provenance
+#
+# Outputs:
+#   image: Full image name with registry
+#   digest: Image digest for verification
+#   metadata: Image metadata JSON
+#
+# Tagging Strategy:
+#   - semver: Version-based tags (v1.0.0, v1, v1.0, latest)
+#   - branch: Branch-based tags (main, develop)
+#   - sha: SHA-based tags (main-abc1234)
+#   - custom: User-defined tags
 ---
-name: Publish Container Image
+name: Build Container Image to GHCR
 
 on:
   workflow_call: # yamllint disable-line rule:truthy
@@ -117,7 +144,7 @@ on:
         value: ${{ jobs.build-and-push.outputs.metadata }}
 
 permissions:
-  contents: read
+  contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
 
 jobs:
   build-and-push:
@@ -218,7 +245,7 @@ jobs:
         with:
           images: ${{ steps.image-name.outputs.name }}
           flavor: |
-            latest=${{ inputs.imageTagStrategy == 'semver' && github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
+            latest=false
           tags: |
             # Semver tags
             type=semver,pattern={{version}},enable=${{ inputs.imageTagStrategy == 'semver' }}

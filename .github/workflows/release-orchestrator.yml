@@ -2,24 +2,47 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Description:
-# This is the main orchestrator workflow for releases. It coordinates version bumping,
-# artifact publishing, container image building, and GitHub release creation.
-# It provides a single entry point for all release activities.
+# Release Orchestrator
+# 
+# Purpose: Main orchestrator workflow that coordinates the complete release process for
+# production releases. It handles version management, artifact publishing, container 
+# building, security attestations, and GitHub release creation in a single workflow.
 #
-# Usage:
-# 1. Add the following to your workflow file:
-#    jobs:
-#      release:
-#        uses: diggsweden/.github/.github/workflows/release-orchestrator.yml@main
-#        secrets: inherit
-#        with:
-#          projectType: "npm"  # or "maven"
-#          releaseType: "stable"
+# How it works:
+# 1. Validates release prerequisites (version match, credentials, permissions)
+# 2. Bumps version and generates changelog using git-cliff
+# 3. Publishes artifacts to configured registries (Maven Central, NPM, GitHub Packages)
+# 4. Builds and publishes container images with SLSA/SBOM if configured
+# 5. Creates GitHub release with changelog, artifacts, and signatures
 #
-# 2. Ensure your repository has all required secrets for GPG signing and publishing
+# Security controls:
+# - GPG signing of all artifacts (if signatures: true)
+# - SLSA provenance attestation for supply chain security
+# - SBOM generation in multiple formats (CycloneDX, SPDX)
+# - Container vulnerability scanning with Trivy
+# - License compliance checking
 #
-# 3. The workflow will orchestrate the complete release process
+# Required Secrets (depending on configuration):
+#   GITHUB_TOKEN: Automatically provided for GitHub operations
+#   GPG_SECRET_KEY: For artifact signing (if signatures enabled)
+#   GPG_PASSPHRASE: For artifact signing (if signatures enabled)
+#   MAVEN_CENTRAL_USERNAME: For Maven Central publishing (maven-lib-mavencentral)
+#   MAVEN_CENTRAL_PASSWORD: For Maven Central publishing (maven-lib-mavencentral)
+#   NPM_TOKEN: For NPM registry publishing (npm packages)
+#
+# Required Permissions:
+#   contents: write       # Create releases and tags
+#   packages: write       # Publish packages and containers
+#   id-token: write      # OIDC for attestations
+#   attestations: write  # Attach SBOMs
+#   security-events: write # Upload scan results
+#   actions: read        # Read workflow for SLSA
+#
+# Composable Components:
+#   - artifactPublisher: maven-app-github, maven-lib-mavencentral, npm-app-github
+#   - containerBuilder: containerimage-ghcr
+#   - changelogCreator: git-cliff
+#   - releasePublisher: jreleaser, github-cli
 ---
 name: Release Orchestrator
 
@@ -28,13 +51,85 @@ on:
     inputs:
       # Project configuration
       projectType:
-        description: "Project type: maven, npm"
+        description: "Project type: maven, npm (required for version bump)"
         required: true
         type: string
-      releaseType:
-        description: "Release type: stable, prerelease, snapshot"
+      
+      # Composition inputs - specify which publishers/builders to use
+      artifactPublisher:
+        description: "Artifact publisher workflow (e.g., maven-app-github, npm-app-github). Leave empty to skip artifact publishing"
         required: false
-        default: "stable"
+        type: string
+      
+      # Artifact configuration (use artifact. prefix)
+      artifact.javaversion:
+        description: "Java version for Maven projects (default: 21)"
+        required: false
+        default: "21"
+        type: string
+      artifact.nodeversion:
+        description: "Node version for NPM projects (default: 22)"
+        required: false
+        default: "22"
+        type: string
+      artifact.attachpattern:
+        description: "Pattern for artifacts to attach to release (default: target/*.jar for Maven)"
+        required: false
+        default: "target/*.jar"
+        type: string
+      artifact.npmtag:
+        description: "NPM publish tag (default: latest)"
+        required: false
+        default: "latest"
+        type: string
+      artifact.settingspath:
+        description: "Path to Maven settings.xml (for maven-lib-mavencentral)"
+        required: false
+        type: string
+      artifact.jreleaserenabled:
+        description: "Enable JReleaser Maven plugin (for maven-lib-mavencentral)"
+        required: false
+        default: false
+        type: boolean
+      containerBuilder:
+        description: "Container builder type (e.g., containerimage-ghcr). Leave empty to skip container building"
+        required: false
+        type: string
+      
+      # Container configuration (use container. prefix)
+      container.registry:
+        description: "Container registry (default: ghcr.io)"
+        required: false
+        default: "ghcr.io"
+        type: string
+      container.platforms:
+        description: "Target platforms (default: linux/amd64)"
+        required: false
+        default: "linux/amd64"
+        type: string
+      container.enableslsa:
+        description: "Enable SLSA provenance (default: true)"
+        required: false
+        default: true
+        type: boolean
+      container.containerfile:
+        description: "Path to Containerfile (default: Containerfile)"
+        required: false
+        default: "Containerfile"
+        type: string
+      container.enablesbom:
+        description: "Generate SBOM (default: true)"
+        required: false
+        default: true
+        type: boolean
+      container.enablescan:
+        description: "Enable vulnerability scanning (default: true)"
+        required: false
+        default: true
+        type: boolean
+      releaseType:
+        description: "Release type: stable, prerelease (auto-detected from tag if not specified)"
+        required: false
         type: string
       branch:
         description: "Branch to work with (default: main)"
@@ -42,114 +137,76 @@ on:
         default: "main"
         type: string
       
-      # Version and changelog configuration
-      skipVersionBump:
-        description: "Skip version bump and changelog generation"
+      # Changelog creator configuration
+      changelogCreator:
+        description: "Changelog creator type (e.g., git-cliff). Leave empty to skip"
         required: false
-        default: false
-        type: boolean
-
-      changelogConfig:
-        description: "Changelog configuration file"
+        default: "git-cliff"
+        type: string
+      changelog.config:
+        description: "Changelog configuration file (default: keepachangelog template)"
         required: false
         default: ".github-templates/gitcliff-templates/keepachangelog.toml"
         type: string
+      changelog.skipversionbump:
+        description: "Skip version bump (default: false)"
+        required: false
+        default: false
+        type: boolean
+
       
-      # Artifact publishing configuration
-      skipArtifactPublish:
-        description: "Skip artifact publishing"
-        required: false
-        default: false
-        type: boolean
-      artifactRegistry:
-        description: "Artifact registry: github, npmjs, maven-central"
-        required: false
-        default: "github"
-        type: string
-      npmTag:
-        description: "NPM publish tag for pre-releases"
-        required: false
-        default: "latest"
-        type: string
+
       
-      # Container configuration
-      skipContainerPublish:
-        description: "Skip container image publishing"
+      # Release publisher configuration  
+      releasePublisher:
+        description: "Release publisher type (jreleaser or github-cli). Leave empty to skip GitHub release"
         required: false
-        default: false
-        type: boolean
-      containerRegistry:
-        description: "Container registry"
-        required: false
-        default: "ghcr.io"
         type: string
-      containerPlatforms:
-        description: "Container target platforms"
-        required: false
-        default: "linux/amd64"
-        type: string
-      containerEnableSLSA:
-        description: "Enable SLSA provenance for containers"
-        required: false
-        default: true
-        type: boolean
-      containerfile:
-        description: "Path to Containerfile"
-        required: false
-        default: "Containerfile"
-        type: string
-      
-      # GitHub Release configuration
-      skipGitHubRelease:
-        description: "Skip GitHub release creation"
-        required: false
-        default: false
-        type: boolean
-      useJReleaser:
-        description: "Use JReleaser for GitHub releases"
-        required: false
-        default: false
-        type: boolean
-      jreleaserConfig:
-        description: "JReleaser configuration file"
+      release.config:
+        description: "Release configuration file (for JReleaser, default: jreleaser.yml)"
         required: false
         default: "jreleaser.yml"
         type: string
-      attachArtifacts:
-        description: "Artifacts to attach to release"
-        required: false
-        type: string
-      generateSBOM:
-        description: "Generate SBOM for release"
+      release.generatesbom:
+        description: "Generate SBOM for release (default: true)"
         required: false
         default: true
         type: boolean
-      signArtifacts:
-        description: "GPG sign release artifacts"
+      release.attachartifacts:
+        description: "Glob patterns for artifacts to attach to GitHub release (comma/newline separated)"
+        required: false
+        default: ""
+        type: string
+      release.signartifacts:
+        description: "GPG sign release artifacts (default: true)"
         required: false
         default: true
+        type: boolean
+      release.checkauthorization:
+        description: "Check if user is authorized for non-SNAPSHOT releases (default: false, true for maven-lib-mavencentral)"
+        required: false
+        default: false
+        type: boolean
+      release.draft:
+        description: "Create as draft release (default: false)"
+        required: false
+        default: false
         type: boolean
       
       # Advanced configuration
-      javaVersion:
-        description: "Java version for Maven projects"
-        required: false
-        default: "21"
-        type: string
-      nodeVersion:
-        description: "Node version for NPM projects"
-        required: false
-        default: "22.x"
-        type: string
-
       workingDirectory:
         description: "Working directory for operations"
         required: false
         default: "."
         type: string
+      
+      file_pattern:
+        description: "Files to commit in version bump (default: CHANGELOG.md pom.xml). NPM projects should set to 'CHANGELOG.md package.json package-lock.json'"
+        required: false
+        type: string
 
 permissions:
-  contents: read
+  contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
 
 jobs:
   # Step 0: Validate Prerequisites
@@ -159,16 +216,17 @@ jobs:
     uses: ./.github/workflows/validate-release-prerequisites.yml
     with:
       projectType: ${{ inputs.projectType }}
-      useJReleaser: ${{ inputs.useJReleaser }}
-      artifactRegistry: ${{ inputs.artifactRegistry }}
-      containerRegistry: ${{ inputs.containerRegistry }}
-      signArtifacts: ${{ inputs.signArtifacts }}
+      useJReleaser: ${{ inputs.releasePublisher == 'jreleaser' }}
+      artifactPublisher: ${{ inputs.artifactPublisher }}
+      containerRegistry: ${{ inputs['container.registry'] }}
+      signArtifacts: ${{ inputs['release.signartifacts'] }}
+      checkAuthorization: ${{ inputs.artifactPublisher == 'maven-lib-mavencentral' || inputs['release.checkauthorization'] }}
 
   # Step 1: Version Bump and Changelog Generation
   version-and-changelog:
     needs: [validate-prerequisites]
     name: Version Bump and Changelog
-    if: ${{ !inputs.skipVersionBump }}
+    if: ${{ !inputs['changelog.skipversionbump'] && inputs.changelogCreator == 'git-cliff' }}
     permissions:
       contents: write
       packages: read
@@ -177,37 +235,68 @@ jobs:
     with:
       branch: ${{ inputs.branch }}
       projectType: ${{ inputs.projectType }}
-      changelog-config: ${{ inputs.changelogConfig }}
+      file_pattern: ${{ inputs.file_pattern }}
+      changelog-config: ${{ inputs['changelog.config'] }}
 
 
-  # Step 2: Publish Artifacts
-  publish-artifacts:
-    name: Publish Artifacts
+  # Step 2a: Publish Maven Application
+  publish-maven-app:
+    name: Publish Maven Application
     needs: [validate-prerequisites, version-and-changelog]
-    # Run even if version-and-changelog was skipped
-    if: ${{ !failure() && !cancelled() && !inputs.skipArtifactPublish }}
+    if: ${{ !failure() && !cancelled() && inputs.artifactPublisher == 'maven-app-github' }}
     permissions:
-      contents: read
+      contents: write
       packages: write
       id-token: write
     secrets: inherit
-    uses: ./.github/workflows/publish-artifacts.yml
+    uses: ./.github/workflows/publishers/maven-app-github.yml
     with:
-      projectType: ${{ inputs.projectType }}
-      branch: ${{ inputs.branch }}
-      registry: ${{ inputs.artifactRegistry }}
-
-      javaVersion: ${{ inputs.javaVersion }}
-      nodeVersion: ${{ inputs.nodeVersion }}
-      npmTag: ${{ inputs.releaseType == 'prerelease' && inputs.npmTag || 'latest' }}
+      javaVersion: ${{ inputs['artifact.javaversion'] }}
       workingDirectory: ${{ inputs.workingDirectory }}
+      branch: ${{ inputs.branch }}
+      attachPattern: ${{ inputs['artifact.attachpattern'] }}
+
+  # Step 2c: Publish Maven Library to Maven Central
+  publish-maven-lib:
+    name: Publish Maven Library
+    needs: [validate-prerequisites, version-and-changelog]
+    if: ${{ !failure() && !cancelled() && inputs.artifactPublisher == 'maven-lib-mavencentral' }}
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      issues: write
+    secrets: inherit
+    uses: ./.github/workflows/publishers/maven-lib-mavencentral.yml
+    with:
+      javaVersion: ${{ inputs['artifact.javaversion'] }}
+      workingDirectory: ${{ inputs.workingDirectory }}
+      branch: ${{ inputs.branch }}
+      settingsPath: ${{ inputs['artifact.settingspath'] }}
+      jreleaserEnabled: ${{ inputs['artifact.jreleaserenabled'] }}
+
+  # Step 2b: Publish NPM Application
+  publish-npm-app:
+    name: Publish NPM Application
+    needs: [validate-prerequisites, version-and-changelog]
+    if: ${{ !failure() && !cancelled() && inputs.artifactPublisher == 'npm-app-github' }}
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    secrets: inherit
+    uses: ./.github/workflows/publishers/npm-app-github.yml
+    with:
+      nodeVersion: ${{ inputs['artifact.nodeversion'] }}
+      workingDirectory: ${{ inputs.workingDirectory }}
+      branch: ${{ inputs.branch }}
+      npmTag: ${{ inputs['artifact.npmtag'] }}
 
   # Step 3: Build and Publish Container
   publish-container:
     name: Publish Container
-    needs: [validate-prerequisites, version-and-changelog, publish-artifacts]
-    # Run even if previous jobs were skipped (but not failed)
-    if: ${{ !failure() && !cancelled() && !inputs.skipContainerPublish }}
+    needs: [validate-prerequisites, version-and-changelog, publish-maven-app, publish-npm-app, publish-maven-lib]
+    if: ${{ !failure() && !cancelled() && inputs.containerBuilder == 'containerimage-ghcr' }}
     permissions:
       contents: read
       packages: write
@@ -216,25 +305,25 @@ jobs:
       actions: read
       attestations: write
     secrets: inherit
-    uses: ./.github/workflows/publish-container.yml
+    uses: ./.github/workflows/builders/containerimage-ghcr.yml
     with:
-      containerfile: ${{ inputs.containerfile }}
+      containerfile: ${{ inputs['container.containerfile'] }}
       context: ${{ inputs.workingDirectory }}
       branch: ${{ inputs.branch }}
-      platforms: ${{ inputs.containerPlatforms }}
-      enableSLSA: ${{ inputs.containerEnableSLSA }}
-      enableSBOM: true
-      enableScan: true
-      registry: ${{ inputs.containerRegistry }}
-      imageTagStrategy: ${{ inputs.releaseType == 'stable' && 'semver' || 'branch' }}
+      platforms: ${{ inputs['container.platforms'] }}
+      enableSLSA: ${{ inputs['container.enableslsa'] }}
+      enableSBOM: ${{ inputs['container.enablesbom'] }}
+      enableScan: ${{ inputs['container.enablescan'] }}
+      registry: ${{ inputs['container.registry'] }}
+      imageTagStrategy: ${{ (inputs.releaseType == 'stable' || (!inputs.releaseType && !contains(github.ref_name, '-'))) && 'semver' || 'branch' }}
       pushImage: true
 
-  # Step 4: Create GitHub Release
+  # Step 4: Create GitHub Release  
   create-release:
     name: Create GitHub Release
-    needs: [validate-prerequisites, publish-artifacts, publish-container]
+    needs: [validate-prerequisites, publish-maven-app, publish-npm-app, publish-maven-lib, publish-container]
     # Run even if previous jobs were skipped but at least one succeeded
-    if: ${{ !failure() && !cancelled() && !inputs.skipGitHubRelease }}
+    if: ${{ !failure() && !cancelled() && (inputs.releasePublisher == 'jreleaser' || inputs.releasePublisher == 'github-cli') }}
     permissions:
       contents: write
       packages: read
@@ -244,11 +333,11 @@ jobs:
     with:
       releaseName: "${{ github.ref_name }}"
       checkoutRef: ${{ inputs.branch }}
-      attachArtifacts: ${{ inputs.attachArtifacts }}
-      generateSBOM: ${{ inputs.generateSBOM }}
-      signArtifacts: ${{ inputs.signArtifacts }}
-      draft: false
-      useJReleaser: ${{ inputs.useJReleaser }}
-      jreleaserConfig: ${{ inputs.jreleaserConfig }}
-      makeLatest: ${{ inputs.releaseType == 'stable' && 'true' || 'false' }}
+      attachArtifacts: ${{ inputs['release.attachartifacts'] }}
+      generateSBOM: ${{ inputs['release.generatesbom'] }}
+      signArtifacts: ${{ inputs['release.signartifacts'] }}
+      draft: ${{ inputs['release.draft'] }}
+      useJReleaser: ${{ inputs.releasePublisher == 'jreleaser' }}
+      jreleaserConfig: ${{ inputs['release.config'] }}
+      makeLatest: ${{ (inputs.releaseType == 'stable' || (!inputs.releaseType && !contains(github.ref_name, '-'))) && 'true' || 'false' }}
 

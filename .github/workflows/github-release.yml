@@ -2,23 +2,45 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Description:
-# This workflow handles unified GitHub release creation with support for both
-# GitHub CLI and JReleaser backends. It includes SBOM generation, artifact signing,
-# and checksum generation.
+# GitHub Release Creator
+# 
+# Purpose: Creates GitHub releases with comprehensive security features including
+# artifact signing, SBOM generation, and checksum calculation. Supports both
+# GitHub CLI and JReleaser as backends for different project needs.
 #
-# Usage:
-# 1. Add the following to your workflow file:
-#    jobs:
-#      release:
-#        uses: diggsweden/.github/.github/workflows/github-release.yml@main
-#        with:
-#          generateSBOM: true
-#          signArtifacts: true
+# How it works:
+# 1. Downloads all artifacts from the workflow run
+# 2. Generates checksums (SHA-256, SHA-512) for all artifacts
+# 3. Creates SBOM in multiple formats (CycloneDX, SPDX) if enabled
+# 4. Signs artifacts with GPG if configured
+# 5. Creates GitHub release with changelog
+# 6. Uploads all artifacts, checksums, signatures, and SBOMs to release
+# 7. Updates issues and milestones if configured
 #
-# 2. Ensure your repository has the required secrets for GPG signing
+# Security controls:
+# - GPG signing of all release artifacts
+# - Checksum generation for integrity verification
+# - SBOM for supply chain transparency
+# - Support for attestation attachment
 #
-# 3. The workflow will create a GitHub release with signed artifacts and SBOMs
+# Required Secrets:
+#   GPG_SECRET_KEY: For artifact signing (if signArtifacts: true)
+#   GPG_PASSPHRASE: For artifact signing (if signArtifacts: true)
+#   GITHUB_TOKEN: For release creation (automatic)
+#
+# Required Permissions:
+#   contents: write      # Create releases
+#   issues: write        # Update issues/milestones (optional)
+#   attestations: write  # Attach attestations (optional)
+#
+# Release Publishers:
+#   - github-cli: Best for NPM/simple projects
+#   - jreleaser: Best for Maven/complex projects with multiple artifacts
+#
+# Generated Files:
+#   - checksums.txt: SHA-256 and SHA-512 for all artifacts
+#   - *.sig: GPG signatures for each artifact
+#   - sbom.json: CycloneDX/SPDX Software Bill of Materials
 ---
 name: Create GitHub Release
 
@@ -77,7 +99,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
 
 jobs:
   create-release:

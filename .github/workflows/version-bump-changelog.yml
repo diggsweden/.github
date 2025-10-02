@@ -2,27 +2,42 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Description:
-# This workflow automates version bumping and changelog generation for your repository.
-# It generates a changelog, commits it, and moves the latest tag to the current commit.
-#
-# How to use:
-# 1. Add the following to your workflow file:
-#    jobs:
-#      version-bump-changelog:
-#        uses: <orgname>/<reponame>/.github/workflows/<workflowname>.yml@main
-#        with:
-#          branch: "main" # Optional, default is "main"
-#          changelog-config: "keepachangelog" # Optional, default is "keepachangelog"
-#          minimal-changelog-config: "minimal" # Optional, default is "minimal"
-#
-# 2. Ensure your repository has the required secrets, listed in the job
+# Version Bump and Changelog Generator
 # 
-# secrets.OSPO_BOT_GHTOKEN
-# secrets.OSPO_BOT_GPG_PRIV
-# secrets.OSPO_BOT_GPG_PASS
+# Purpose: Automates version management and changelog generation based on conventional
+# commits. Updates version files, generates formatted changelog, and commits changes
+# back to the repository with proper signing.
 #
-# 3. The workflow will generate a changelog, commit it, and update the latest tag.
+# How it works:
+# 1. Detects current version from pom.xml or package.json
+# 2. Determines new version based on tag and release type
+# 3. Generates changelog using git-cliff from commit messages
+# 4. Updates version in project files
+# 5. Commits and signs changes with GPG
+# 6. Pushes changes back to repository
+#
+# Security controls:
+# - GPG signing of commits for authenticity
+# - Uses bot token with limited permissions
+# - Validates version format before updating
+#
+# Required Secrets:
+#   GITHUB_TOKEN: For repository operations (or custom bot token)
+#   GPG_SECRET_KEY: GPG key for signing commits (optional)
+#   GPG_PASSPHRASE: Passphrase for GPG key (optional)
+#
+# Required Permissions:
+#   contents: write  # Update version files and push commits
+#
+# Changelog Formats:
+#   - keepachangelog: Standard Keep a Changelog format
+#   - minimal: Simplified format for quick reading
+#   - conventional: Based on conventional commits
+#
+# Version Strategies:
+#   - SemVer for stable releases (1.0.0)
+#   - Pre-release for beta/rc (1.0.0-beta.1)
+#   - SNAPSHOT for development (1.0.0-SNAPSHOT)
 ---
     name: Version Bump and Changelog Gen
     
@@ -38,11 +53,6 @@
             description: "Project type: maven, npm"
             required: true
             type: string
-          updatePom:
-            description: "Whether to update a POM version (deprecated - use projectType)"
-            required: false
-            default: false
-            type: boolean
 
 
           changelog-config:
@@ -67,7 +77,7 @@
             type: string
     
     permissions:
-      contents: read
+      contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
     
     jobs:
       bump-version:
@@ -105,7 +115,7 @@
               echo "type=${PROJECT_TYPE}" >> "$GITHUB_OUTPUT"
 
           - name: Update Maven version
-            if: ${{ (inputs.updatePom || steps.project-type.outputs.type == 'maven') }}
+            if: ${{ steps.project-type.outputs.type == 'maven' }}
             env:
               GITHUB_ACTOR: ${{ github.actor }}
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

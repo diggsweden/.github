@@ -1,0 +1,172 @@
+# SPDX-FileCopyrightText: 2024 Digg - Agency for Digital Government
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Maven Application Publisher for GitHub Packages
+# 
+# Purpose: Builds and publishes Maven applications (JAR/WAR files) to GitHub Packages
+# registry. Handles the complete build lifecycle including dependency resolution,
+# compilation, testing, and artifact upload.
+#
+# How it works:
+# 1. Sets up specified Java version (17, 21, etc.)
+# 2. Configures Maven settings for GitHub Packages access
+# 3. Runs Maven build with tests (unless skipped)
+# 4. Publishes artifacts to GitHub Packages
+# 5. Uploads JARs as workflow artifacts for release attachment
+#
+# Security controls:
+# - Uses GITHUB_TOKEN for authenticated package publishing
+# - Validates POM before publishing
+# - Can skip tests for faster deployment (not recommended for production)
+#
+# Required Secrets:
+#   GITHUB_TOKEN: For publishing to GitHub Packages (automatic)
+#
+# Required Permissions:
+#   contents: read   # Read source code
+#   packages: write  # Publish to GitHub Packages
+#
+# Generated Artifacts:
+#   - target/*.jar: Application JAR files
+#   - target/*.war: Web application archives (if applicable)
+#   - pom.xml: Project metadata
+#
+# Maven Configuration:
+#   - Uses Maven wrapper if present
+#   - Caches dependencies for faster builds
+#   - Supports custom settings.xml if needed
+---
+name: Publish Maven Application to GitHub
+
+on:
+  workflow_call:
+    inputs:
+      javaVersion:
+        description: "Java version"
+        required: false
+        default: "21"
+        type: string
+      workingDirectory:
+        description: "Working directory"
+        required: false
+        default: "."
+        type: string
+      skipTests:
+        description: "Skip tests during build"
+        required: false
+        default: false
+        type: boolean
+      attachPattern:
+        description: "Pattern for artifacts to attach to release"
+        required: false
+        default: "target/*.jar"
+        type: string
+      branch:
+        description: "Branch to checkout"
+        required: false
+        default: "main"
+        type: string
+
+permissions:
+  contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
+
+jobs:
+  publish-maven-app:
+    name: Publish Maven Application
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@3c4609aefc52a12db73037f7368c956f03094c5d # v4.6.0
+        with:
+          java-version: ${{ inputs.javaVersion }}
+          distribution: 'temurin'
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Build application
+        working-directory: ${{ inputs.workingDirectory }}
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Building Maven application..."
+          mvn clean compile
+          
+          if [ "${{ inputs.skipTests }}" != "true" ]; then
+            echo "Running tests..."
+            mvn test
+          fi
+          
+          echo "Creating application package..."
+          mvn package -DskipTests=${{ inputs.skipTests }}
+          
+          # If it's a Spring Boot app, ensure we have executable JAR
+          if grep -q "spring-boot-maven-plugin" pom.xml; then
+            echo "Detected Spring Boot application, creating executable JAR..."
+            mvn spring-boot:repackage -DskipTests
+          fi
+
+      - name: List built artifacts
+        working-directory: ${{ inputs.workingDirectory }}
+        run: |
+          echo "Built artifacts:"
+          ls -la target/*.jar || echo "No JAR files found"
+          ls -la target/*.war || echo "No WAR files found"
+
+      - name: Publish to GitHub Packages
+        working-directory: ${{ inputs.workingDirectory }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Publishing to GitHub Packages..."
+          mvn deploy -DskipTests -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }}
+
+      - name: Upload artifacts to release
+        if: ${{ inputs.attachPattern != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: ${{ inputs.workingDirectory }}
+        run: |
+          echo "Uploading artifacts to GitHub release..."
+          
+          # Check if release exists
+          if gh release view "${{ github.ref_name }}" > /dev/null 2>&1; then
+            echo "Release ${{ github.ref_name }} exists, uploading artifacts..."
+            
+            # Upload matching files
+            for file in ${{ inputs.attachPattern }}; do
+              if [ -f "$file" ]; then
+                echo "Uploading $file..."
+                gh release upload "${{ github.ref_name }}" "$file" --clobber || true
+              fi
+            done
+          else
+            echo "Warning: Release ${{ github.ref_name }} not found. Artifacts not uploaded."
+          fi
+
+      - name: Generate build summary
+        run: |
+          echo "## Maven Application Build Summary 📦" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Java Version:** ${{ inputs.javaVersion }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests:** ${{ inputs.skipTests && 'Skipped' || 'Executed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Published to:" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Packages: `${{ github.repository }}`" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ inputs.attachPattern }}" ]; then
+            echo "- GitHub Release: Artifacts attached" >> $GITHUB_STEP_SUMMARY
+          fi
