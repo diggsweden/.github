@@ -112,12 +112,6 @@ jobs:
           
           echo "Creating application package..."
           mvn package -DskipTests=${{ inputs.skipTests }}
-          
-          # If it's a Spring Boot app, ensure we have executable JAR
-          if grep -q "spring-boot-maven-plugin" pom.xml; then
-            echo "Detected Spring Boot application, creating executable JAR..."
-            mvn spring-boot:repackage -DskipTests
-          fi
 
       - name: List built artifacts
         working-directory: ${{ inputs.workingDirectory }}

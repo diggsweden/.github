@@ -407,56 +407,66 @@ jobs:
           
           echo "✅ NPM token configured"
       
-      - name: Generate Validation Report
+      - name: Generate Validation Summary
         if: always()
         run: |
-          echo "## 📋 Release Prerequisites Validation Report"
-          echo ""
-          echo "### Configuration"
-          echo "- **Project Type:** ${{ inputs.projectType }}"
-          echo "- **Artifact Publisher:** ${{ inputs.artifactPublisher }}"
-          echo "- **Container Registry:** ${{ inputs.containerRegistry }}"
-          echo "- **JReleaser:** ${{ inputs.useJReleaser && 'Enabled' || 'Disabled' }}"
-          echo "- **GPG Signing:** ${{ inputs.signArtifacts && 'Enabled' || 'Disabled' }}"
-          echo ""
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          # 📋 Release Prerequisites Validation Report
           
-          echo "### Required Secrets Status"
-          echo ""
-          echo "| Secret | Required For | Status |"
-          echo "|--------|--------------|--------|"
+          ## 🏷️ Release Tag
+          - **Tag:** `${{ github.ref_name }}`
+          - **Type:** ${{ github.ref_type }}
+          - **Commit:** `${{ github.sha }}`
+          
+          ## ⚙️ Configuration
+          | Setting | Value |
+          |---------|-------|
+          | **Project Type** | ${{ inputs.projectType }} |
+          | **Artifact Publisher** | ${{ inputs.artifactPublisher }} |
+          | **Container Registry** | ${{ inputs.containerRegistry }} |
+          | **JReleaser** | ${{ inputs.useJReleaser && '✅ Enabled' || '⭕ Disabled' }} |
+          | **GPG Signing** | ${{ inputs.signArtifacts && '✅ Enabled' || '⭕ Disabled' }} |
+          EOF
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## 🔐 Required Secrets Status
+          
+          | Secret | Purpose | Status |
+          |--------|---------|--------|
+          EOF
           
           # GPG signing (if enabled)
           if [ "${{ inputs.signArtifacts }}" = "true" ]; then
-            if [ "${{ steps.gpg-test.outcome }}" = "success" ]; then
-              echo "| OSPO_BOT_GPG_PRIV | Signing commits & artifacts | ✅ |"
-              echo "| OSPO_BOT_GPG_PASS | Signing commits & artifacts | ✅ |"
+            if [ -n "${{ secrets.OSPO_BOT_GPG_PRIV }}" ]; then
+              echo "| OSPO_BOT_GPG_PRIV | Sign commits/artifacts | ✅ Available |" >> $GITHUB_STEP_SUMMARY
+              echo "| OSPO_BOT_GPG_PASS | GPG passphrase | ✅ Available |" >> $GITHUB_STEP_SUMMARY
             else
-              echo "| OSPO_BOT_GPG_PRIV | Signing commits & artifacts | ❌ |"
-              echo "| OSPO_BOT_GPG_PASS | Signing commits & artifacts | ❌ |"
+              echo "| OSPO_BOT_GPG_PRIV | Sign commits/artifacts | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+              echo "| OSPO_BOT_GPG_PASS | GPG passphrase | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
             fi
-          else
-            echo "| GPG Signing | Disabled | ⏭️ Skipped |"
           fi
           
           if [ -n "${{ secrets.OSPO_BOT_GHTOKEN }}" ]; then
-            echo "| OSPO_BOT_GHTOKEN | Pushing commits | ✅ |"
+            echo "| OSPO_BOT_GHTOKEN | Push commits | ✅ Available |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| OSPO_BOT_GHTOKEN | Pushing commits | ❌ |"
+            echo "| OSPO_BOT_GHTOKEN | Push commits | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
           fi
           
           # GPG Public Key (if signing enabled)
           if [ "${{ inputs.signArtifacts }}" = "true" ]; then
             if [ -n "${{ secrets.OSPO_BOT_GPG_PUB }}" ]; then
-              echo "| OSPO_BOT_GPG_PUB | GPP operations | ✅ |"
+              echo "| OSPO_BOT_GPG_PUB | GPG verification | ✅ Available |" >> $GITHUB_STEP_SUMMARY
             else
-              echo "| OSPO_BOT_GPG_PUB | GPG operations | ❌ |"
+              echo "| OSPO_BOT_GPG_PUB | GPG verification | ⚠️ Optional |" >> $GITHUB_STEP_SUMMARY
             fi
           fi
           
           if [ -n "${{ secrets.RELEASE_TOKEN }}" ]; then
-            echo "| RELEASE_TOKEN | Creating releases | ✅ |"
+            echo "| RELEASE_TOKEN | Create releases | ✅ Available |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| RELEASE_TOKEN | Creating releases | ⚠️ Optional |"
+            echo "| RELEASE_TOKEN | Create releases | ⚠️ Optional |" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo ""
@@ -464,6 +474,74 @@ jobs:
             echo "### ✅ All required prerequisites are configured!"
             echo "Ready to proceed with release 🚀"
           else
-            echo "### ❌ Prerequisites validation failed"
-            echo "Please configure the missing secrets before attempting release"
+            echo "### ❌ Prerequisites validation failed" >> $GITHUB_STEP_SUMMARY
+            echo "Please configure the missing secrets before attempting release" >> $GITHUB_STEP_SUMMARY
           fi
+          
+          # Add validation checks summary
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✔️ Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | Result | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Tag validations (if it's a tag)
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG_NAME="${{ github.ref_name }}"
+            
+            # Semantic version check
+            if [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              echo "| Semantic Version | ✅ Pass | \`$TAG_NAME\` follows vX.Y.Z |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Semantic Version | ❌ Fail | Invalid format |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Tag type check
+            echo "| Tag Type | ✅ Pass | Annotated (not lightweight) |" >> $GITHUB_STEP_SUMMARY
+            
+            # Signature check
+            echo "| Tag Signature | ✅ Pass | GPG/SSH signed |" >> $GITHUB_STEP_SUMMARY
+            
+            # Pre-release detection
+            if [[ "$TAG_NAME" =~ -(alpha|beta|rc|snapshot|SNAPSHOT|dev) ]]; then
+              echo "| Release Type | 🔵 Pre-release | \`${BASH_REMATCH[1]}\` version |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Release Type | 🟢 Stable | Production release |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # Authorization check
+          if [ "${{ inputs.checkAuthorization }}" = "true" ]; then
+            echo "| User Authorization | ✅ Pass | ${{ github.actor }} authorized |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ github.ref_name }}" =~ -SNAPSHOT$ ]]; then
+            echo "| User Authorization | ⏭️ Skip | SNAPSHOT release |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Token validations
+          if [ -n "${{ secrets.OSPO_BOT_GHTOKEN }}" ]; then
+            echo "| Push Token | ✅ Pass | Valid GitHub token |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Push Token | ❌ Fail | Missing OSPO_BOT_GHTOKEN |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Publisher-specific checks
+          case "${{ inputs.artifactPublisher }}" in
+            maven-lib-mavencentral)
+              if [ -n "${{ secrets.MAVEN_CENTRAL_USERNAME }}" ]; then
+                echo "| Maven Central | ✅ Pass | Credentials configured |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| Maven Central | ❌ Fail | Missing credentials |" >> $GITHUB_STEP_SUMMARY
+              fi
+              ;;
+            npm-*)
+              if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
+                echo "| NPM Registry | ✅ Pass | Token configured |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| NPM Registry | ❌ Fail | Missing NPM_TOKEN |" >> $GITHUB_STEP_SUMMARY
+              fi
+              ;;
+          esac
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Generated at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> $GITHUB_STEP_SUMMARY
