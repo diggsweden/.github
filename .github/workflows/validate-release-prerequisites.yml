@@ -103,6 +103,7 @@ jobs:
         with:
           fetch-depth: 0  # Need full history to verify tags
           fetch-tags: true
+          ref: ${{ github.ref }}  # Explicitly fetch the tag ref
       
       - name: Validate Tag Format
         if: ${{ github.ref_type == 'tag' }}
@@ -169,12 +170,21 @@ jobs:
           # For annotated tags, the tag object exists
           # For lightweight tags, the tag points directly to a commit
           
+          # Debug: Check what Git sees
+          echo "Debug: Fetching tag information..."
+          git fetch --tags --force
+          
           # Check if tag is annotated using git cat-file
           # For annotated tags: git cat-file -t <tag> returns "tag"
           # For lightweight tags: git cat-file -t <tag> returns "commit"
           TAG_TYPE=$(git cat-file -t "$TAG_NAME" 2>/dev/null || echo "unknown")
           
           echo "Tag '$TAG_NAME' object type: $TAG_TYPE"
+          
+          # Additional debug info
+          echo "Debug: Tag details:"
+          git show-ref "$TAG_NAME" || true
+          git rev-parse "$TAG_NAME" || true
           
           if [[ "$TAG_TYPE" != "tag" ]]; then
             echo "❌ Tag '$TAG_NAME' is a lightweight tag (not annotated)"
