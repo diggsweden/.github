@@ -265,7 +265,6 @@ jobs:
       contents: write
       packages: write
       id-token: write
-      issues: write
     secrets: inherit
     uses: ./.github/workflows/publish-maven-lib-central.yml
     with:
