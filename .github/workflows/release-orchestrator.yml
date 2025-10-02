@@ -240,6 +240,7 @@ jobs:
       changelog-config: ${{ inputs['changelog.config'] }}
       javaVersion: ${{ inputs['artifact.javaversion'] }}
       nodeVersion: ${{ inputs['artifact.nodeversion'] }}
+      workingDirectory: ${{ inputs.workingDirectory }}
 
 
   # Step 2a: Publish Maven Application

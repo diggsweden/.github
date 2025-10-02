@@ -128,6 +128,18 @@ jobs:
           echo "Publishing to GitHub Packages..."
           mvn deploy -DskipTests -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }}
 
+      - name: Upload Maven artifacts for other jobs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: maven-artifacts
+          path: |
+            ${{ inputs.workingDirectory }}/target/*.jar
+            ${{ inputs.workingDirectory }}/target/*.war
+            !${{ inputs.workingDirectory }}/target/*-sources.jar
+            !${{ inputs.workingDirectory }}/target/*-javadoc.jar
+            !${{ inputs.workingDirectory }}/target/original-*.jar
+          retention-days: 1
+
       - name: Upload artifacts to release
         if: ${{ inputs.attachPattern != '' }}
         env:

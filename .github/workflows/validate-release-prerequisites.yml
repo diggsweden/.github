@@ -410,13 +410,55 @@ jobs:
       - name: Generate Validation Summary
         if: always()
         run: |
-          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          # Collect tag and commit information
+          TAG_NAME="${{ github.ref_name }}"
+          COMMIT_SHA="${{ github.sha }}"
+          
+          # Get tag information if it's a tag
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAGGER_INFO=$(git for-each-ref refs/tags/$TAG_NAME --format='%(taggername) <%(taggeremail)>' 2>/dev/null || echo "N/A")
+            TAG_DATE=$(git for-each-ref refs/tags/$TAG_NAME --format='%(taggerdate:short)' 2>/dev/null || echo "N/A")
+            TAG_MESSAGE=$(git tag -l -n1 "$TAG_NAME" | sed "s/^$TAG_NAME *//" | head -1 || echo "No message")
+            
+            # Check if tag is signed
+            TAG_SIGNATURE="Not signed"
+            if git tag -v "$TAG_NAME" >/dev/null 2>&1; then
+              TAG_SIGNATURE="✅ GPG signed"
+            elif git show "$TAG_NAME" 2>/dev/null | grep -q "BEGIN SSH SIGNATURE"; then
+              TAG_SIGNATURE="✅ SSH signed"
+            fi
+          fi
+          
+          # Get commit information
+          COMMIT_AUTHOR=$(git log -1 --format='%an <%ae>' $COMMIT_SHA)
+          COMMIT_DATE=$(git log -1 --format='%cs' $COMMIT_SHA)
+          COMMIT_MESSAGE=$(git log -1 --format='%s' $COMMIT_SHA)
+          
+          # Check if commit is signed
+          COMMIT_SIGNATURE="Not signed"
+          if git log -1 --show-signature $COMMIT_SHA 2>&1 | grep -q "Good signature"; then
+            COMMIT_SIGNATURE="✅ GPG signed"
+          elif git log -1 --show-signature $COMMIT_SHA 2>&1 | grep -q "Good \"git\" signature"; then
+            COMMIT_SIGNATURE="✅ SSH signed"
+          fi
+          
+          cat >> $GITHUB_STEP_SUMMARY << EOF
           # 📋 Release Prerequisites Validation Report
           
           ## 🏷️ Release Tag
-          - **Tag:** `${{ github.ref_name }}`
+          - **Tag:** \`$TAG_NAME\`
           - **Type:** ${{ github.ref_type }}
-          - **Commit:** `${{ github.sha }}`
+          - **Tagger:** $TAGGER_INFO
+          - **Tag Date:** $TAG_DATE
+          - **Tag Signature:** $TAG_SIGNATURE
+          - **Tag Message:** $TAG_MESSAGE
+          
+          ## 📝 Tagged Commit
+          - **SHA:** \`$COMMIT_SHA\`
+          - **Author:** $COMMIT_AUTHOR
+          - **Date:** $COMMIT_DATE
+          - **Signature:** $COMMIT_SIGNATURE
+          - **Message:** $COMMIT_MESSAGE
           
           ## ⚙️ Configuration
           | Setting | Value |

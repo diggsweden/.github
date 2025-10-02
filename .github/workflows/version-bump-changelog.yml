@@ -63,6 +63,11 @@
             required: false
             default: '22'
             type: string
+          workingDirectory:
+            description: "Working directory for the project"
+            required: false
+            default: '.'
+            type: string
 
 
           changelog-config:
@@ -91,6 +96,7 @@
     
     jobs:
       bump-version:
+        name: Changelog and Version
         runs-on: ubuntu-latest
         permissions:
           contents: write
@@ -131,9 +137,11 @@
               java-version: ${{ inputs.javaVersion }}
               distribution: 'temurin'
               cache: maven
+              cache-dependency-path: ${{ inputs.workingDirectory }}/pom.xml
 
           - name: Update Maven version
             if: ${{ steps.project-type.outputs.type == 'maven' }}
+            working-directory: ${{ inputs.workingDirectory }}
             env:
               GITHUB_ACTOR: ${{ github.actor }}
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,9 +161,11 @@
             with:
               node-version: ${{ inputs.nodeVersion }}
               cache: 'npm'
+              cache-dependency-path: ${{ inputs.workingDirectory }}/package-lock.json
 
           - name: Update NPM version
             if: ${{ steps.project-type.outputs.type == 'npm' }}
+            working-directory: ${{ inputs.workingDirectory }}
             run: |
               echo "Tag: ${GITHUB_REF_NAME}"
               TAG="${GITHUB_REF_NAME#v}"
