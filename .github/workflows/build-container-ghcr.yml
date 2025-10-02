@@ -71,6 +71,10 @@ on:
         required: false
         default: "linux/amd64"
         type: string
+      projectType:
+        description: "Project type (maven/npm) for artifact download"
+        required: false
+        type: string
       enableSLSA:
         description: "Generate SLSA provenance"
         required: false
@@ -175,6 +179,7 @@ jobs:
           ref: ${{ inputs.branch }}
 
       - name: Download Maven artifacts
+        if: ${{ inputs.projectType == 'maven' }}
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         continue-on-error: true
         with:
@@ -182,6 +187,7 @@ jobs:
           path: target/
 
       - name: Download NPM artifacts
+        if: ${{ inputs.projectType == 'npm' }}
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         continue-on-error: true
         with:

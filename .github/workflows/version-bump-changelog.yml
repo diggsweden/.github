@@ -136,8 +136,7 @@
             with:
               java-version: ${{ inputs.javaVersion }}
               distribution: 'temurin'
-              cache: maven
-              cache-dependency-path: ${{ inputs.workingDirectory }}/pom.xml
+              # No cache here - we'll cache after version update
 
           - name: Update Maven version
             if: ${{ steps.project-type.outputs.type == 'maven' }}
@@ -152,16 +151,22 @@
               echo "Version: ${TAG}"
               mvn $MAVEN_CLI_OPTS versions:set -DnewVersion="${TAG}" -DgenerateBackupPoms=false -DskipTests
               
-              echo "Pre-downloading dependencies to cache..."
+              echo "Pre-downloading dependencies..."
               mvn $MAVEN_CLI_OPTS dependency:go-offline || true
+              
+          - name: Save Maven cache
+            if: ${{ steps.project-type.outputs.type == 'maven' }}
+            uses: actions/cache/save@v3
+            with:
+              path: ~/.m2/repository
+              key: maven-${{ runner.os }}-${{ hashFiles(format('{0}/pom.xml', inputs.workingDirectory)) }}
 
           - name: Set up Node.js for NPM
             if: ${{ steps.project-type.outputs.type == 'npm' }}
             uses: actions/setup-node@v4
             with:
               node-version: ${{ inputs.nodeVersion }}
-              cache: 'npm'
-              cache-dependency-path: ${{ inputs.workingDirectory }}/package-lock.json
+              # No cache here - we'll cache after version update
 
           - name: Update NPM version
             if: ${{ steps.project-type.outputs.type == 'npm' }}
@@ -174,8 +179,15 @@
               # Always use version from tag
               npm version "${TAG}" --no-git-tag-version --allow-same-version
               
-              echo "Pre-installing dependencies to cache..."
+              echo "Pre-installing dependencies..."
               npm ci --ignore-scripts || npm install --ignore-scripts || true
+              
+          - name: Save NPM cache  
+            if: ${{ steps.project-type.outputs.type == 'npm' }}
+            uses: actions/cache/save@v3
+            with:
+              path: ~/.npm
+              key: npm-${{ runner.os }}-${{ hashFiles(format('{0}/package-lock.json', inputs.workingDirectory)) }}
 
 
           

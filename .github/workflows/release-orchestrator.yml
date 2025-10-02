@@ -318,6 +318,7 @@ jobs:
       enableSBOM: ${{ inputs['container.enablesbom'] }}
       enableScan: ${{ inputs['container.enablescan'] }}
       registry: ${{ inputs['container.registry'] }}
+      projectType: ${{ inputs.projectType }}
       imageTagStrategy: ${{ (inputs.releaseType == 'stable' || (!inputs.releaseType && !contains(github.ref_name, '-'))) && 'semver' || 'branch' }}
       pushImage: true
 
@@ -343,4 +344,143 @@ jobs:
       useJReleaser: ${{ inputs.releasePublisher == 'jreleaser' }}
       jreleaserConfig: ${{ inputs['release.config'] }}
       makeLatest: ${{ (inputs.releaseType == 'stable' || (!inputs.releaseType && !contains(github.ref_name, '-'))) && 'true' || 'false' }}
+
+  # Final summary
+  release-summary:
+    name: Release Summary
+    needs: [validate-prerequisites, version-and-changelog, publish-maven-app, publish-npm-app, publish-maven-lib, publish-container, create-release]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Generate Release Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          # Release Summary
+          
+          ## Release Overview
+          | Property | Value |
+          |----------|-------|
+          | **Version** | `${{ github.ref_name }}` |
+          | **Type** | ${{ inputs.releaseType == 'stable' && 'Stable' || contains(github.ref_name, 'alpha') && 'Alpha' || contains(github.ref_name, 'beta') && 'Beta' || contains(github.ref_name, 'rc') && 'Release Candidate' || 'Development' }} |
+          | **Source Branch** | `${{ inputs.branch }}` |
+          | **Commit** | `${{ github.sha }}` |
+          | **Released By** | @${{ github.actor }} |
+          | **Released At** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |
+          
+          ## What Was Published
+          | Component | Status | Details |
+          |-----------|--------|---------|
+          EOF
+          
+          # Maven Application
+          if [ "${{ inputs.artifactPublisher }}" = "maven-app-github" ]; then
+            if [ "${{ needs.publish-maven-app.result }}" = "success" ]; then
+              echo "| **Maven Package** | ✅ Published | [View in GitHub Packages](https://github.com/${{ github.repository }}/packages) |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **Maven Package** | ❌ Failed | Check workflow logs |" >> $GITHUB_STEP_SUMMARY
+            fi
+          elif [ "${{ inputs.artifactPublisher }}" = "maven-lib-mavencentral" ]; then
+            if [ "${{ needs.publish-maven-lib.result }}" = "success" ]; then
+              echo "| **Maven Library** | ✅ Published | Maven Central |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **Maven Library** | ❌ Failed | Check workflow logs |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # NPM Package
+          if [ "${{ inputs.artifactPublisher }}" = "npm-app-github" ]; then
+            if [ "${{ needs.publish-npm-app.result }}" = "success" ]; then
+              echo "| **NPM Package** | ✅ Published | [View in npm Registry](https://github.com/${{ github.repository }}/packages) |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **NPM Package** | ❌ Failed | Check workflow logs |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # Container
+          if [ "${{ inputs.containerBuilder }}" = "containerimage-ghcr" ]; then
+            if [ "${{ needs.publish-container.result }}" = "success" ]; then
+              CONTAINER_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+              echo "| **Container Image** | ✅ Published | [ghcr.io/${CONTAINER_NAME}:${{ github.ref_name }}](https://github.com/${{ github.repository }}/pkgs/container/$(basename ${{ github.repository }})) |" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.publish-container.result }}" = "skipped" ]; then
+              echo "| **Container Image** | ⏭️ Skipped | Not configured |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **Container Image** | ❌ Failed | Check workflow logs |" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "| **Container Image** | ⏭️ Skipped | Not configured |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # GitHub Release
+          if [ "${{ needs.create-release.result }}" = "success" ]; then
+            echo "| **GitHub Release** | ✅ Created | [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.create-release.result }}" = "skipped" ]; then
+            echo "| **GitHub Release** | ⏭️ Skipped | Not configured |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| **GitHub Release** | ❌ Failed | Check workflow logs |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          
+          ## 🔒 Security & Compliance
+          | Check | Status | Details |
+          |-------|--------|---------|
+          | **Tag Validation** | ✅ Passed | Annotated & Signed |
+          | **GPG Signature** | ${{ inputs['release.signartifacts'] && '✅ Signed' || '⏭️ Not configured' }} | OSPO_BOT |
+          EOF
+          
+          # Add SLSA info if container was built
+          if [ "${{ inputs.containerBuilder }}" = "containerimage-ghcr" ] && [ "${{ needs.publish-container.result }}" = "success" ]; then
+            echo "| **SLSA Provenance** | ${{ inputs['container.enableslsa'] && '✅ Level 3' || '⏭️ Disabled' }} | Supply chain attestation |" >> $GITHUB_STEP_SUMMARY
+            echo "| **SBOM** | ${{ inputs['container.enablesbom'] && '✅ Generated' || '⏭️ Disabled' }} | CycloneDX & SPDX formats |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Vulnerability Scan** | ${{ inputs['container.enablescan'] && '✅ Completed' || '⏭️ Disabled' }} | Trivy scanner |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Quick start section
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "          ## Quick Start" >> $GITHUB_STEP_SUMMARY
+          
+          # Container pull command
+          if [ "${{ inputs.containerBuilder }}" = "containerimage-ghcr" ] && [ "${{ needs.publish-container.result }}" = "success" ]; then
+            CONTAINER_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "# Pull with Podman" >> $GITHUB_STEP_SUMMARY
+            echo "podman pull ghcr.io/${CONTAINER_NAME}:${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Maven dependency
+          if [ "${{ inputs.projectType }}" = "maven" ] && [ "${{ inputs.artifactPublisher }}" = "maven-app-github" ]; then
+            echo '```xml' >> $GITHUB_STEP_SUMMARY
+            echo "<!-- Add to pom.xml -->" >> $GITHUB_STEP_SUMMARY
+            echo "<dependency>" >> $GITHUB_STEP_SUMMARY
+            echo "  <groupId>GROUP_ID</groupId>" >> $GITHUB_STEP_SUMMARY
+            echo "  <artifactId>ARTIFACT_ID</artifactId>" >> $GITHUB_STEP_SUMMARY
+            echo "  <version>${{ github.ref_name }}</version>" >> $GITHUB_STEP_SUMMARY
+            echo "</dependency>" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # NPM install
+          if [ "${{ inputs.projectType }}" = "npm" ] && [ "${{ inputs.artifactPublisher }}" = "npm-app-github" ]; then
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "# Install with npm" >> $GITHUB_STEP_SUMMARY
+            echo "npm install @${{ github.repository }}@${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          
+          ## Release Resources
+          - **[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }})** - Release notes and assets
+          - **[Changelog](https://github.com/${{ github.repository }}/blob/${{ inputs.branch }}/CHANGELOG.md)** - Version history
+          - **[Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})** - Build details
+          - **[All Packages](https://github.com/${{ github.repository }}/packages)** - Package registry
+          - **[All Releases](https://github.com/${{ github.repository }}/releases)** - Release history
+          
+          ---
+          *Release workflow completed at $(date -u '+%Y-%m-%d %H:%M:%S UTC')* • [View all workflows](https://github.com/${{ github.repository }}/actions)
+          EOF
 

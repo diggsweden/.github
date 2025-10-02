@@ -92,6 +92,7 @@ jobs:
           java-version: ${{ inputs.javaVersion }}
           distribution: 'temurin'
           cache: maven
+          cache-dependency-path: ${{ inputs.workingDirectory }}/pom.xml
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
@@ -164,15 +165,66 @@ jobs:
           fi
 
       - name: Generate build summary
+        working-directory: ${{ inputs.workingDirectory }}
         run: |
-          echo "## Maven Application Build Summary 📦" >> $GITHUB_STEP_SUMMARY
+          echo "# 📦 Maven Application Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Java Version:** ${{ inputs.javaVersion }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tests:** ${{ inputs.skipTests && 'Skipped' || 'Executed' }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Published to:" >> $GITHUB_STEP_SUMMARY
-          echo "- GitHub Packages: `${{ github.repository }}`" >> $GITHUB_STEP_SUMMARY
-          if [ -n "${{ inputs.attachPattern }}" ]; then
-            echo "- GitHub Release: Artifacts attached" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract artifact coordinates from pom.xml
+          GROUP_ID=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout)
+          ARTIFACT_ID=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          
+          echo "## 🎯 Artifact Details" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Coordinates** | \`$GROUP_ID:$ARTIFACT_ID:$VERSION\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Java Version** | ${{ inputs.javaVersion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Build Time** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+          
+          # Detect framework
+          FRAMEWORK="Standard Java"
+          if grep -q "spring-boot-maven-plugin" pom.xml; then
+            FRAMEWORK="Spring Boot"
+          elif grep -q "quarkus" pom.xml; then
+            FRAMEWORK="Quarkus"
           fi
+          echo "| **Framework** | $FRAMEWORK |" >> $GITHUB_STEP_SUMMARY
+          
+          # List built artifacts with sizes
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📁 Built Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          for file in target/*.jar target/*.war; do
+            if [ -f "$file" ]; then
+              FILE_NAME=$(basename "$file")
+              FILE_SIZE=$(ls -lh "$file" | awk '{print $5}')
+              echo "| \`$FILE_NAME\` | $FILE_SIZE |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Distribution" >> $GITHUB_STEP_SUMMARY
+          echo "| Location | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **GitHub Packages** | [\`${{ github.repository }}\`](https://github.com/${{ github.repository }}/packages) |" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ inputs.attachPattern }}" ]; then
+            echo "| **GitHub Release** | [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📥 Download Instructions" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# Using Maven" >> $GITHUB_STEP_SUMMARY
+          echo "mvn dependency:get \\" >> $GITHUB_STEP_SUMMARY
+          echo "  -DremoteRepositories=https://maven.pkg.github.com/${{ github.repository }} \\" >> $GITHUB_STEP_SUMMARY
+          echo "  -DgroupId=$GROUP_ID \\" >> $GITHUB_STEP_SUMMARY
+          echo "  -DartifactId=$ARTIFACT_ID \\" >> $GITHUB_STEP_SUMMARY
+          echo "  -Dversion=$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Build completed at $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> $GITHUB_STEP_SUMMARY

@@ -115,6 +115,7 @@ jobs:
           java-version: ${{ inputs.javaVersion }}
           distribution: 'temurin'
           cache: maven
+          cache-dependency-path: ${{ inputs.workingDirectory }}/pom.xml
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
