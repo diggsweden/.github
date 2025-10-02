@@ -9,8 +9,8 @@
 # credentials, permissions, and configuration early in the process.
 #
 # How it works:
-# 1. Verifies tag is cryptographically signed (GPG or SSH)
-# 2. Verifies tag format matches expected pattern
+# 1. Validates tag follows semantic versioning (vX.Y.Z)
+# 2. Verifies tag is cryptographically signed (GPG or SSH)
 # 3. Checks tag version matches project version (pom.xml/package.json)
 # 4. Validates all required secrets are present and valid
 # 5. Tests authentication to target registries (Maven Central, NPM, ghcr.io)
@@ -104,6 +104,55 @@ jobs:
           fetch-depth: 0  # Need full history to verify tags
           fetch-tags: true
       
+      - name: Validate Tag Format
+        if: ${{ github.ref_type == 'tag' }}
+        run: |
+          echo "## Validating Tag Format"
+          TAG_NAME="${{ github.ref_name }}"
+          
+          # Check if tag follows semantic versioning pattern
+          # Must start with 'v' followed by X.Y.Z where X, Y, Z are numbers
+          # Can optionally have pre-release suffix (e.g., -alpha.1, -beta.2, -rc.1, -dev)
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.\-]+)?$ ]]; then
+            echo "::error::❌ Invalid tag format: '$TAG_NAME'"
+            echo ""
+            echo "Tags must follow semantic versioning: vMAJOR.MINOR.PATCH[-PRERELEASE]"
+            echo "Valid: v1.0.0, v2.3.4-beta.1, v1.0.0-rc.2, v3.0.0-alpha, v1.0.0-dev"
+            echo "Learn more: https://semver.org"
+            exit 1
+          fi
+          
+          # Extract version components
+          VERSION_PATTERN="^v([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?$"
+          if [[ "$TAG_NAME" =~ $VERSION_PATTERN ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+            PRERELEASE="${BASH_REMATCH[5]}"
+            
+            echo "✅ Valid semantic version tag"
+            echo "   Version: $MAJOR.$MINOR.$PATCH"
+            if [[ -n "$PRERELEASE" ]]; then
+              echo "   Pre-release: $PRERELEASE"
+              
+              # Validate pre-release format matches our allowed patterns
+              if [[ "$PRERELEASE" =~ ^(alpha|beta|rc|snapshot|SNAPSHOT|dev)(\.[0-9]+)?$ ]]; then
+                echo "   ✅ Pre-release identifier follows convention"
+              else
+                echo "   ℹ️ Non-standard pre-release identifier: $PRERELEASE"
+                echo "      Standard identifiers: alpha, beta, rc, snapshot, SNAPSHOT, dev"
+                echo "      (Release will proceed - this is informational only)"
+              fi
+            else
+              echo "   Type: Stable release"
+            fi
+          fi
+          
+          echo ""
+          echo "### Tag Format Summary:"
+          echo "✅ Tag follows semantic versioning (vX.Y.Z)"
+          echo "✅ Tag format validation passed"
+      
       - name: Validate Tag Signature
         if: ${{ github.ref_type == 'tag' }}
         run: |
@@ -120,17 +169,11 @@ jobs:
           TAG_TYPE=$(git cat-file -t "$TAG_NAME" 2>/dev/null || echo "lightweight")
           
           if [[ "$TAG_TYPE" != "tag" ]]; then
-            echo "::error::❌ Tag '$TAG_NAME' is a lightweight tag!"
+            echo "::error::❌ Tag '$TAG_NAME' is a lightweight tag (not annotated)"
             echo ""
-            echo "Release tags MUST be signed for security. Create a signed tag with:"
-            echo "  git tag -s $TAG_NAME -m 'Release $TAG_NAME'"
-            echo ""
-            echo "Or if you don't have GPG configured, at minimum create an annotated tag:"
-            echo "  git tag -a $TAG_NAME -m 'Release $TAG_NAME'"
-            echo ""
-            echo "Then push with: git push origin $TAG_NAME"
-            echo ""
-            echo "Lightweight tags (git tag $TAG_NAME) are not allowed for releases."
+            echo "Release tags must be annotated and signed for security."
+            echo "Create with: git tag -s v1.0.0 -m \"Release v1.0.0\""
+            echo "Learn more: https://git-scm.com/book/en/v2/Git-Basics-Tagging"
             exit 1
           fi
           
@@ -154,24 +197,10 @@ jobs:
           fi
           
           if [[ "$HAS_GPG_SIG" == "false" ]] && [[ "$HAS_SSH_SIG" == "false" ]]; then
-            echo "::error::❌ Tag '$TAG_NAME' is NOT signed!"
+            echo "::error::❌ Tag '$TAG_NAME' is not signed"
             echo ""
-            echo "For security, all release tags MUST be cryptographically signed."
-            echo ""
-            echo "To sign with GPG:"
-            echo "  git config --global user.signingkey YOUR_GPG_KEY_ID"
-            echo "  git tag -s $TAG_NAME -m 'Release $TAG_NAME'"
-            echo ""
-            echo "To sign with SSH (recommended - you already have SSH keys!):"
-            echo "  git config --global gpg.format ssh"
-            echo "  git config --global user.signingkey ~/.ssh/id_ed25519.pub"
-            echo "  git tag -s $TAG_NAME -m 'Release $TAG_NAME'"
-            echo ""
-            echo "After signing, force push the tag:"
-            echo "  git tag -d $TAG_NAME && git push origin :refs/tags/$TAG_NAME"
-            echo "  git tag -s $TAG_NAME -m 'Release $TAG_NAME'"
-            echo "  git push origin $TAG_NAME"
-            echo ""
+            echo "Release tags must be cryptographically signed."
+            echo "Create with: git tag -s v1.0.0 -m \"Release v1.0.0\""
             echo "Learn more: https://docs.github.com/en/authentication/managing-commit-signature-verification"
             exit 1
           fi
