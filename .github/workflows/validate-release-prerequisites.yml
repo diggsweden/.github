@@ -165,10 +165,30 @@ jobs:
             exit 0
           fi
           
-          # First, check if tag exists and is annotated
-          TAG_TYPE=$(git cat-file -t "$TAG_NAME" 2>/dev/null || echo "lightweight")
+          # Check if tag is annotated by looking at what it points to
+          # For annotated tags, the tag object exists
+          # For lightweight tags, the tag points directly to a commit
           
-          if [[ "$TAG_TYPE" != "tag" ]]; then
+          # Method 1: Try to show the tag object
+          if git show-ref --verify "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+            # Tag exists, now check if it's annotated
+            TAG_SHA=$(git rev-list -n 1 "$TAG_NAME" 2>/dev/null)
+            TAG_REF_SHA=$(git show-ref -s "refs/tags/$TAG_NAME" 2>/dev/null)
+            
+            # If these are different, it's an annotated tag
+            # If they're the same, it's a lightweight tag
+            if [[ "$TAG_SHA" == "$TAG_REF_SHA" ]]; then
+              TAG_TYPE="lightweight"
+            else
+              TAG_TYPE="annotated"
+            fi
+          else
+            TAG_TYPE="unknown"
+          fi
+          
+          echo "Tag '$TAG_NAME' type: $TAG_TYPE"
+          
+          if [[ "$TAG_TYPE" == "lightweight" ]]; then
             echo "::error::❌ Tag '$TAG_NAME' is a lightweight tag (not annotated)"
             echo ""
             echo "Release tags must be annotated and signed for security."
