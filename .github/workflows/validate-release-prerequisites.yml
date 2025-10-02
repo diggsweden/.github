@@ -103,6 +103,8 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          # Don't use ref parameter - let it checkout the default ref
+          # This ensures we get proper tag objects when triggered by tags
       
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
@@ -112,6 +114,11 @@ jobs:
           git_user_signingkey: true
           git_commit_gpgsign: true
           git_config_global: true
+      
+      - name: Fetch all tags
+        run: |
+          echo "Fetching all tags to ensure we have tag objects..."
+          git fetch --tags --force
       
       - name: Validate Tag Format
         if: ${{ github.ref_type == 'tag' }}
@@ -184,11 +191,6 @@ jobs:
           TAG_TYPE=$(git cat-file -t "$TAG_NAME" 2>/dev/null || echo "unknown")
           
           echo "Tag '$TAG_NAME' object type: $TAG_TYPE"
-          
-          # Additional debug info
-          echo "Debug: Tag details:"
-          git show-ref "$TAG_NAME" || true
-          git rev-parse "$TAG_NAME" || true
           
           if [[ "$TAG_TYPE" != "tag" ]]; then
             echo "❌ Tag '$TAG_NAME' is a lightweight tag (not annotated)"
