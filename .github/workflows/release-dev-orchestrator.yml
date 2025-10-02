@@ -71,7 +71,7 @@ jobs:
       contents: read
       packages: write
     secrets: inherit
-    uses: ./.github/workflows/builders/containerimage-ghcr-dev.yml
+    uses: ./.github/workflows/build-container-ghcr-dev.yml
     with:
       containerfile: ${{ inputs.containerfile }}
       registry: ${{ inputs.registry }}

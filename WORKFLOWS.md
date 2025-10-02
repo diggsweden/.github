@@ -137,7 +137,7 @@ jobs:
     
   my-container:
     needs: my-build
-    uses: diggsweden/.github/.github/workflows/builders/containerimage-ghcr.yml@main
+    uses: diggsweden/.github/.github/workflows/build-container-ghcr.yml@main
     # Use just the container builder
 ```
 
@@ -572,7 +572,7 @@ You can use individual components instead of the full orchestrators.
 #### `maven-app-github`
 Publishes Maven applications to GitHub Packages.
 ```yaml
-uses: ./.github/workflows/publishers/maven-app-github.yml
+uses: ./.github/workflows/publish-maven-app-github.yml
 with:
   javaVersion: "21"        # JDK version (17, 21, etc.)
   workingDirectory: "."    # Subdirectory containing pom.xml
@@ -583,7 +583,7 @@ with:
 #### `maven-lib-mavencentral`
 Publishes Maven libraries to Maven Central.
 ```yaml
-uses: ./.github/workflows/publishers/maven-lib-mavencentral.yml
+uses: ./.github/workflows/publish-maven-lib-central.yml
 with:
   javaVersion: "21"
   workingDirectory: "."
@@ -594,7 +594,7 @@ with:
 #### `npm-app-github`
 Publishes NPM packages to GitHub Packages.
 ```yaml
-uses: ./.github/workflows/publishers/npm-app-github.yml
+uses: ./.github/workflows/publish-npm-app-github.yml
 with:
   nodeVersion: "22"       # Node.js version (20, 22, lts/*, etc.)
   workingDirectory: "."
@@ -606,7 +606,7 @@ with:
 #### `containerimage-ghcr`
 Production container builds with full security features.
 ```yaml
-uses: ./.github/workflows/builders/containerimage-ghcr.yml
+uses: ./.github/workflows/build-container-ghcr.yml
 with:
   containerfile: "Containerfile"        # Path to Container/Dockerfile
   context: "."                          # Docker build context directory
@@ -620,7 +620,7 @@ with:
 #### `containerimage-ghcr-dev`
 Fast development container builds.
 ```yaml
-uses: ./.github/workflows/builders/containerimage-ghcr-dev.yml
+uses: ./.github/workflows/build-container-ghcr-dev.yml
 with:
   containerfile: "Dockerfile"
   registry: "ghcr.io"

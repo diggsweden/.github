@@ -249,7 +249,7 @@ jobs:
       packages: write
       id-token: write
     secrets: inherit
-    uses: ./.github/workflows/publishers/maven-app-github.yml
+    uses: ./.github/workflows/publish-maven-app-github.yml
     with:
       javaVersion: ${{ inputs['artifact.javaversion'] }}
       workingDirectory: ${{ inputs.workingDirectory }}
@@ -267,7 +267,7 @@ jobs:
       id-token: write
       issues: write
     secrets: inherit
-    uses: ./.github/workflows/publishers/maven-lib-mavencentral.yml
+    uses: ./.github/workflows/publish-maven-lib-central.yml
     with:
       javaVersion: ${{ inputs['artifact.javaversion'] }}
       workingDirectory: ${{ inputs.workingDirectory }}
@@ -285,7 +285,7 @@ jobs:
       packages: write
       id-token: write
     secrets: inherit
-    uses: ./.github/workflows/publishers/npm-app-github.yml
+    uses: ./.github/workflows/publish-npm-app-github.yml
     with:
       nodeVersion: ${{ inputs['artifact.nodeversion'] }}
       workingDirectory: ${{ inputs.workingDirectory }}
@@ -305,7 +305,7 @@ jobs:
       actions: read
       attestations: write
     secrets: inherit
-    uses: ./.github/workflows/builders/containerimage-ghcr.yml
+    uses: ./.github/workflows/build-container-ghcr.yml
     with:
       containerfile: ${{ inputs['container.containerfile'] }}
       context: ${{ inputs.workingDirectory }}
