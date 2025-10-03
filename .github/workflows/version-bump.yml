@@ -2,16 +2,16 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Version Bump and Changelog Generator
+# Version Bump
 # 
-# Purpose: Automates version management and changelog generation based on conventional
-# commits. Updates version files, generates formatted changelog, and commits changes
-# back to the repository with proper signing.
+# Purpose: Automates version management for releases. Updates version files,
+# downloads generated changelogs, and commits all changes back to the repository
+# with proper signing.
 #
 # How it works:
 # 1. Detects current version from pom.xml or package.json
 # 2. Determines new version based on tag and release type
-# 3. Generates changelog using git-cliff from commit messages
+# 3. Downloads pre-generated changelogs (full and minimal)
 # 4. Updates version in project files
 # 5. Commits and signs changes with GPG
 # 6. Pushes changes back to repository
@@ -39,7 +39,7 @@
 #   - Pre-release for beta/rc (1.0.0-beta.1)
 #   - SNAPSHOT for development (1.0.0-SNAPSHOT)
 ---
-    name: Version Bump and Changelog Gen
+    name: Version Bump
     
     on:
       workflow_call: # yamllint disable-line rule:truthy
@@ -70,15 +70,10 @@
             type: string
 
 
-          changelog-config:
-            description: "Configuration for the full changelog (default: keepachangelog)"
-            required: false
-            default: ".github-templates/gitcliff-templates/keepachangelog.toml "
-            type: string
           minimal-changelog-config:
             description: "Configuration for the minimal changelog (default: minimal)"
             required: false
-            default: ".github-templates/gitcliff-templates/minimal.toml "
+            default: ".github-templates/gitcliff-templates/minimal.toml"
             type: string
           file_pattern:
             description: 'Files to commit (default: "CHANGELOG.md pom.xml"). NPM projects should set to "CHANGELOG.md package.json package-lock.json"'
@@ -95,8 +90,37 @@
       contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
     
     jobs:
+      # Generate full changelog for committing to repository
+      generate-full-changelog:
+        name: Generate Full Changelog
+        permissions:
+          contents: read
+        uses: ./.github/workflows/generate-changelog.yml
+        with:
+          branch: ${{ inputs.branch }}
+          changelogConfig: ".github-templates/gitcliff-templates/keepachangelog.toml"
+          gitCliffArgs: ""  # Empty means full history
+          outputFile: "CHANGELOG.md"
+          uploadAsArtifact: true
+          artifactName: "full-changelog"
+
+      # Generate minimal changelog for commit message
+      generate-minimal-changelog:
+        name: Generate Minimal Changelog
+        permissions:
+          contents: read
+        uses: ./.github/workflows/generate-changelog.yml
+        with:
+          branch: ${{ inputs.branch }}
+          changelogConfig: ".github-templates/gitcliff-templates/minimal.toml"
+          gitCliffArgs: "--latest --strip header"
+          outputFile: "minimal-changelog.txt"
+          uploadAsArtifact: true
+          artifactName: "minimal-changelog"
+
       bump-version:
-        name: Changelog and Version
+        name: Bump Version and Commit
+        needs: [generate-full-changelog, generate-minimal-changelog]
         runs-on: ubuntu-latest
         permissions:
           contents: write
@@ -169,7 +193,8 @@
               MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress --errors --fail-at-end -Dstyle.color=always"
             run: |
               echo "Pre-downloading dependencies with updated pom.xml..."
-              mvn $MAVEN_CLI_OPTS dependency:go-offline || true
+              mvn $MAVEN_CLI_OPTS dependency:resolve || true
+              mvn $MAVEN_CLI_OPTS dependency:resolve-plugins || true
 
           - name: Set up Node.js for NPM
             if: ${{ steps.project-type.outputs.type == 'npm' }}
@@ -201,31 +226,34 @@
 
 
           
-          - name: Fetch git-cliff templates
-            uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+          - name: Download Full Changelog
+            uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
             with:
-              repository: diggsweden/.github
-              path: .github-templates
-              ref: main
+              name: full-changelog
+              path: ${{ inputs.workingDirectory }}
 
-          - name: Generate changelog
-            uses: orhun/git-cliff-action@98c93442bb05a455a77bee982867857ae748eeea # v4.5.1
+          - name: Download Minimal Changelog  
+            uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
             with:
-              config: ${{ inputs.changelog-config }} 
-            env:
-              OUTPUT: CHANGELOG.md
-              GITHUB_REPO: ${{ github.repository }}
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-          - name: Generate minimal changelog
+              name: minimal-changelog
+              path: ${{ inputs.workingDirectory }}
+
+          - name: Read Minimal Changelog
             id: minimal-changelog
-            uses: orhun/git-cliff-action@98c93442bb05a455a77bee982867857ae748eeea # v4.5.1
-            with:
-              config: ${{ inputs.minimal-changelog-config }}
-              args: --latest --strip header
-            env:
-              GITHUB_REPO: ${{ github.repository }}
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            working-directory: ${{ inputs.workingDirectory }}
+            run: |
+              if [ -f "minimal-changelog.txt" ]; then
+                # Read content and escape for GitHub Actions
+                CONTENT=$(cat minimal-changelog.txt)
+                # Use EOF delimiter to handle multiline content
+                {
+                  echo "content<<EOF"
+                  echo "$CONTENT"
+                  echo "EOF"
+                } >> "$GITHUB_OUTPUT"
+              else
+                echo "content=No changes for this release" >> "$GITHUB_OUTPUT"
+              fi
     
           - name: Commit and Push Changes
             uses: stefanzweifel/git-auto-commit-action@778341af668090896ca464160c2def5d1d1a3eb0 # v6.0.1

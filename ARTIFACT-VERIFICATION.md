@@ -137,14 +137,14 @@ VERSION="v1.0.0"
 
 # Download release asset and checksums
 gh release download ${VERSION} -p "*.tar.gz"
-gh release download ${VERSION} -p "checksums.txt"
-gh release download ${VERSION} -p "checksums.txt.sig"
+gh release download ${VERSION} -p "checksums.sha256"
+gh release download ${VERSION} -p "checksums.sha256.asc"
 
 # Verify GPG signature on checksums
-gpg --verify checksums.txt.sig checksums.txt
+gpg --verify checksums.sha256.asc checksums.sha256
 
 # Verify file integrity
-sha256sum -c checksums.txt --ignore-missing
+sha256sum -c checksums.sha256 --ignore-missing
 ```
 
 ### 5. SSH Key Setup for Git Verification

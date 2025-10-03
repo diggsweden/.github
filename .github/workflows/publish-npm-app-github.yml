@@ -31,9 +31,8 @@
 #   packages: write  # Publish to GitHub NPM registry
 #
 # Generated Artifacts:
-#   - dist/: Built application files
-#   - package.json: Package metadata
-#   - package-lock.json: Dependency lock file
+#   - *.tgz: NPM package tarball (uploaded as workflow artifact)
+#   - Published package in GitHub Packages registry
 #
 # NPM Configuration:
 #   - Supports scoped packages (@org/package)
@@ -48,8 +47,7 @@ on:
     inputs:
       nodeVersion:
         description: "Node.js version"
-        required: false
-        default: "22"
+        required: true
         type: string
       workingDirectory:
         description: "Working directory"
@@ -136,27 +134,22 @@ jobs:
           
           npm publish --tag ${{ steps.tag.outputs.tag }}
 
-      - name: Create deployment bundle
+      - name: Pack NPM tarball
         working-directory: ${{ inputs.workingDirectory }}
         run: |
-          # Create a deployment bundle for the application
-          tar -czf app-${{ github.ref_name }}.tar.gz \
-            $([ -d "dist" ] && echo "dist/" || echo ".") \
-            $([ -d "build" ] && echo "build/" || echo ".") \
-            node_modules/ \
-            package*.json \
-            --exclude=node_modules/.cache \
-            --exclude=node_modules/.bin
+          echo "Creating NPM package tarball..."
+          npm pack
+          
+          # List the created tarball for verification
+          ls -lh *.tgz
 
-      - name: Upload bundle to release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        working-directory: ${{ inputs.workingDirectory }}
-        run: |
-          if gh release view "${{ github.ref_name }}" > /dev/null 2>&1; then
-            echo "Uploading application bundle to release..."
-            gh release upload "${{ github.ref_name }}" app-${{ github.ref_name }}.tar.gz --clobber || true
-          fi
+      - name: Upload NPM artifacts for other jobs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-artifacts
+          path: |
+            ${{ inputs.workingDirectory }}/*.tgz
+          retention-days: 1
 
       - name: Generate build summary
         run: |
@@ -168,4 +161,3 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Published to:" >> $GITHUB_STEP_SUMMARY
           echo "- GitHub Packages: \`@${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Application bundle uploaded to release" >> $GITHUB_STEP_SUMMARY

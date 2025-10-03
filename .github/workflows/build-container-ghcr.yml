@@ -99,15 +99,7 @@ on:
         description: "Custom image name (defaults to repository name)"
         required: false
         type: string
-      imageTagStrategy:
-        description: "Tagging strategy: semver, branch, sha, custom"
-        required: false
-        default: "semver"
-        type: string
-      customTags:
-        description: "Custom tags (when imageTagStrategy is custom)"
-        required: false
-        type: string
+
       buildArgs:
         description: "Build arguments (KEY=VALUE format, one per line)"
         required: false
@@ -253,21 +245,20 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            # Semver tags
-            type=semver,pattern={{version}},enable=${{ inputs.imageTagStrategy == 'semver' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.imageTagStrategy == 'semver' }}
-            type=semver,pattern={{major}},enable=${{ inputs.imageTagStrategy == 'semver' && github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
+            # Always include the ref as-is (branch name, tag name, or PR number)
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
             
-            # Branch-based tags
-            type=ref,event=branch,enable=${{ inputs.imageTagStrategy == 'branch' || inputs.imageTagStrategy == 'semver' }}
-            type=ref,event=pr,enable=${{ inputs.imageTagStrategy == 'branch' }}
+            # For version tags only (v1.0.0, v2.3.4, etc)
+            type=semver,pattern={{version}},enable=${{ github.ref_type == 'tag' }}
             
-            # SHA-based tags
-            type=sha,prefix={{branch}}-,enable=${{ inputs.imageTagStrategy == 'sha' }}
-            type=raw,value={{branch}}-{{date 'YYYYMMDD'}}-{{sha}},enable=${{ inputs.imageTagStrategy == 'sha' }}
+            # For stable versions only (no dash in tag name like -beta, -rc)
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
+            type=semver,pattern={{major}},enable=${{ github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
             
-            # Custom tags
-            type=raw,value=${{ inputs.customTags }},enable=${{ inputs.imageTagStrategy == 'custom' && inputs.customTags != '' }}
+            # SHA-based tags for non-tag refs (branches, PRs) for traceability
+            type=sha,prefix={{branch}}-,enable=${{ github.ref_type != 'tag' }}
 
       - name: Build Container Image
         id: build

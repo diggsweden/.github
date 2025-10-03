@@ -138,11 +138,27 @@ jobs:
       - name: Generate dev tags
         id: tags
         run: |
-          # Dev tag with sha at the end
+          # Get the latest semver tag
+          git fetch --tags
+          # Use git describe to get the most recent tag, or sort -V for proper version sorting
+          LATEST_TAG=$(git describe --tags --match="v[0-9]*.[0-9]*.[0-9]*" --abbrev=0 2>/dev/null || git tag -l "v[0-9]*.[0-9]*.[0-9]*" | sort -V | tail -n1 || echo "")
+          
+          # If no semver tag exists, use v0.0.0
+          if [ -z "$LATEST_TAG" ]; then
+            BASE_VERSION="0.0.0"
+          else
+            # Remove 'v' prefix if present
+            BASE_VERSION="${LATEST_TAG#v}"
+          fi
+          
+          # Dev tag with version and sha
           SHORT_SHA=${GITHUB_SHA:0:7}
           IMAGE_NAME="${{ inputs.registry }}/${{ github.repository }}"
-          echo "tags=${IMAGE_NAME}:dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "image=${IMAGE_NAME}:dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          DEV_TAG="${BASE_VERSION}-dev-${SHORT_SHA}"
+          
+          echo "tags=${IMAGE_NAME}:${DEV_TAG}" >> $GITHUB_OUTPUT
+          echo "image=${IMAGE_NAME}:${DEV_TAG}" >> $GITHUB_OUTPUT
+          echo "📦 Dev tag: ${DEV_TAG}"
 
       - name: Build and push
         id: build

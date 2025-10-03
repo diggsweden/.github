@@ -44,8 +44,7 @@ on:
     inputs:
       javaVersion:
         description: "Java version"
-        required: false
-        default: "21"
+        required: true
         type: string
       workingDirectory:
         description: "Working directory"

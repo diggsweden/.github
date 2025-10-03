@@ -144,9 +144,9 @@ on:
         default: "git-cliff"
         type: string
       changelog.config:
-        description: "Changelog configuration file (default: keepachangelog template)"
+        description: "Changelog configuration file (default: uses generate-changelog default)"
         required: false
-        default: ".github-templates/gitcliff-templates/keepachangelog.toml"
+        default: ""
         type: string
       changelog.skipversionbump:
         description: "Skip version bump (default: false)"
@@ -214,7 +214,7 @@ jobs:
   validate-prerequisites:
     name: Validate Prerequisites
     secrets: inherit
-    uses: ./.github/workflows/validate-release-prerequisites.yml
+    uses: ./.github/workflows/release-prerequisites.yml
     with:
       projectType: ${{ inputs.projectType }}
       useJReleaser: ${{ inputs.releasePublisher == 'jreleaser' }}
@@ -222,31 +222,30 @@ jobs:
       containerRegistry: ${{ inputs['container.registry'] }}
       signArtifacts: ${{ inputs['release.signartifacts'] }}
       checkAuthorization: ${{ inputs.artifactPublisher == 'maven-lib-mavencentral' || inputs['release.checkauthorization'] }}
+      branch: ${{ inputs.branch }}
 
-  # Step 1: Version Bump and Changelog Generation
+  # Step 1: Version Bump
   version-and-changelog:
     needs: [validate-prerequisites]
-    name: Version Bump and Changelog
+    name: Version Bump
     if: ${{ !inputs['changelog.skipversionbump'] && inputs.changelogCreator == 'git-cliff' }}
     permissions:
       contents: write
       packages: read
     secrets: inherit
-    uses: ./.github/workflows/version-bump-changelog.yml
+    uses: ./.github/workflows/version-bump.yml
     with:
       branch: ${{ inputs.branch }}
       projectType: ${{ inputs.projectType }}
       file_pattern: ${{ inputs.file_pattern }}
-      changelog-config: ${{ inputs['changelog.config'] }}
       javaVersion: ${{ inputs['artifact.javaversion'] }}
       nodeVersion: ${{ inputs['artifact.nodeversion'] }}
       workingDirectory: ${{ inputs.workingDirectory }}
 
-
   # Step 2a: Publish Maven Application
   publish-maven-app:
     name: Publish Maven Application
-    needs: [validate-prerequisites, version-and-changelog]
+    needs: [version-and-changelog]
     if: ${{ !failure() && !cancelled() && inputs.artifactPublisher == 'maven-app-github' }}
     permissions:
       contents: write
@@ -263,7 +262,7 @@ jobs:
   # Step 2c: Publish Maven Library to Maven Central
   publish-maven-lib:
     name: Publish Maven Library
-    needs: [validate-prerequisites, version-and-changelog]
+    needs: [version-and-changelog]
     if: ${{ !failure() && !cancelled() && inputs.artifactPublisher == 'maven-lib-mavencentral' }}
     permissions:
       contents: write
@@ -277,11 +276,12 @@ jobs:
       branch: ${{ inputs.branch }}
       settingsPath: ${{ inputs['artifact.settingspath'] }}
       jreleaserEnabled: ${{ inputs['artifact.jreleaserenabled'] }}
+      changelogConfig: ${{ inputs['changelog.config'] }}
 
   # Step 2b: Publish NPM Application
   publish-npm-app:
     name: Publish NPM Application
-    needs: [validate-prerequisites, version-and-changelog]
+    needs: [version-and-changelog]
     if: ${{ !failure() && !cancelled() && inputs.artifactPublisher == 'npm-app-github' }}
     permissions:
       contents: write
@@ -298,7 +298,7 @@ jobs:
   # Step 3: Build and Publish Container
   publish-container:
     name: Publish Container
-    needs: [validate-prerequisites, version-and-changelog, publish-maven-app, publish-npm-app, publish-maven-lib]
+    needs: [publish-maven-app, publish-npm-app]
     if: ${{ !failure() && !cancelled() && inputs.containerBuilder == 'containerimage-ghcr' }}
     permissions:
       contents: read
@@ -319,13 +319,12 @@ jobs:
       enableScan: ${{ inputs['container.enablescan'] }}
       registry: ${{ inputs['container.registry'] }}
       projectType: ${{ inputs.projectType }}
-      imageTagStrategy: ${{ (inputs.releaseType == 'stable' || (!inputs.releaseType && !contains(github.ref_name, '-'))) && 'semver' || 'branch' }}
       pushImage: true
 
   # Step 4: Create GitHub Release  
   create-release:
     name: Create GitHub Release
-    needs: [validate-prerequisites, publish-maven-app, publish-npm-app, publish-maven-lib, publish-container]
+    needs: [publish-maven-app, publish-npm-app, publish-maven-lib, publish-container]
     # Run even if previous jobs were skipped but at least one succeeded
     if: ${{ !failure() && !cancelled() && (inputs.releasePublisher == 'jreleaser' || inputs.releasePublisher == 'github-cli') }}
     permissions:
@@ -333,7 +332,7 @@ jobs:
       packages: read
       id-token: write
     secrets: inherit
-    uses: ./.github/workflows/github-release.yml
+    uses: ./.github/workflows/release-github.yml
     with:
       releaseName: "${{ github.ref_name }}"
       checkoutRef: ${{ inputs.branch }}
@@ -343,6 +342,8 @@ jobs:
       draft: ${{ inputs['release.draft'] }}
       useJReleaser: ${{ inputs.releasePublisher == 'jreleaser' }}
       jreleaserConfig: ${{ inputs['release.config'] }}
+      projectType: ${{ inputs.projectType }}
+      changelogConfig: ${{ inputs['changelog.config'] }}
       makeLatest: ${{ (inputs.releaseType == 'stable' || (!inputs.releaseType && !contains(github.ref_name, '-'))) && 'true' || 'false' }}
 
   # Final summary

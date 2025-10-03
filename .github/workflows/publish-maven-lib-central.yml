@@ -24,10 +24,10 @@
 # - Staging repository for validation before release
 #
 # Required Secrets:
-#   MAVEN_CENTRAL_USERNAME: Sonatype OSSRH username
-#   MAVEN_CENTRAL_PASSWORD: Sonatype OSSRH password
-#   MAVEN_CENTRAL_GPG_SECRET_KEY: GPG private key for signing
-#   MAVEN_CENTRAL_GPG_SECRET_KEY_PASSWORD: GPG key passphrase
+#   MAVENCENTRAL_USERNAME: Sonatype OSSRH username
+#   MAVENCENTRAL_PASSWORD: Sonatype OSSRH password
+#   OSPO_BOT_GPG_PRIV: GPG private key for signing
+#   OSPO_BOT_GPG_PASS: GPG key passphrase
 #
 # Required Permissions:
 #   contents: write  # Create releases if using JReleaser
@@ -53,8 +53,7 @@ on:
     inputs:
       javaVersion:
         description: "Java version"
-        required: false
-        default: "21"
+        required: true
         type: string
       workingDirectory:
         description: "Working directory"
@@ -86,6 +85,11 @@ on:
         required: false
         default: "main"
         type: string
+      changelogConfig:
+        description: "Path to changelog configuration file"
+        required: false
+        default: ".github-templates/gitcliff-templates/default.toml"
+        type: string
 
 permissions:
   contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
@@ -94,8 +98,24 @@ env:
   MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress --errors --fail-at-end -Dstyle.color=always -DinstallAtEnd=true -DdeployAtEnd=true"
 
 jobs:
+  generate-changelog:
+    name: Generate Release Changelog
+    if: ${{ inputs.jreleaserEnabled }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/generate-changelog.yml
+    with:
+      branch: ${{ inputs.branch }}
+      changelogConfig: ${{ inputs.changelogConfig }}
+      gitCliffArgs: "--latest"
+      outputFile: "ReleasenotesTmp"
+      uploadAsArtifact: true
+      artifactName: "release-changelog"
+
   publish-maven-lib:
     name: Publish Maven Library
+    needs: [generate-changelog]
+    if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -179,6 +199,14 @@ jobs:
           # shellcheck disable=SC2086
           mvn $MAVEN_CLI_OPTS deploy $SETTINGS_ARG -P${{ inputs.profile }} -DskipTests
 
+
+      - name: Download Release Changelog
+        if: inputs.jreleaserEnabled
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        continue-on-error: true
+        with:
+          name: release-changelog
+          path: ${{ inputs.workingDirectory }}
 
       - name: Run JReleaser
         if: inputs.jreleaserEnabled

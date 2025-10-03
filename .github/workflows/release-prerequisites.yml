@@ -28,8 +28,8 @@
 # Required Secrets (depending on configuration):
 #   GPG_SECRET_KEY: For signature validation
 #   GPG_PASSPHRASE: For signature validation
-#   MAVEN_CENTRAL_USERNAME: For Maven Central auth check
-#   MAVEN_CENTRAL_PASSWORD: For Maven Central auth check
+#   MAVENCENTRAL_USERNAME: For Maven Central auth check
+#   MAVENCENTRAL_PASSWORD: For Maven Central auth check
 #   NPM_TOKEN: For NPM registry auth check
 #   AUTHORIZED_DEVELOPERS: Comma-separated list of authorized users
 #
@@ -74,6 +74,11 @@ on:
         required: false
         default: false
         type: boolean
+      branch:
+        description: "Target branch for release (default: main)"
+        required: false
+        default: "main"
+        type: string
 
   workflow_dispatch: # Allow manual validation
     inputs:
@@ -265,6 +270,101 @@ jobs:
           echo "Tag message:"
           git tag -l -n999 "$TAG_NAME" | sed 's/^[^ ]* */  /'
       
+      - name: Validate Tag Uniqueness
+        if: ${{ github.ref_type == 'tag' }}
+        run: |
+          echo "## Validating Tag Points to Unique Commit"
+          TAG_NAME="${{ github.ref_name }}"
+          
+          # Get the commit SHA this tag points to
+          TAG_COMMIT=$(git rev-parse "$TAG_NAME^{commit}")
+          echo "Tag '$TAG_NAME' points to commit: $TAG_COMMIT"
+          
+          # Find all other tags pointing to the same commit
+          OTHER_TAGS=$(git tag --points-at "$TAG_COMMIT" | grep -v "^${TAG_NAME}$" || true)
+          
+          if [ -n "$OTHER_TAGS" ]; then
+            echo "::error::❌ Tag '$TAG_NAME' points to the same commit as other tag(s)"
+            echo ""
+            echo "The following tags also point to commit $TAG_COMMIT:"
+            echo "$OTHER_TAGS" | sed 's/^/  - /'
+            echo ""
+            echo "📝 Multiple tags on the same commit cause changelog generation issues."
+            echo "   This is a known limitation in git-cliff:"
+            echo "   https://github.com/orhun/git-cliff/issues/1036"
+            echo ""
+            exit 1
+          fi
+          
+          echo "✅ Tag '$TAG_NAME' points to a unique commit"
+          echo "✅ No other tags found on commit $TAG_COMMIT"
+      
+      - name: Validate Tag Commit Availability
+        if: ${{ github.ref_type == 'tag' }}
+        run: |
+          echo "## Validating Tag Commit is Available on Branch"
+          TAG_NAME="${{ github.ref_name }}"
+          BRANCH="${{ inputs.branch }}"
+          
+          # Get the commit the tag points to
+          TAG_COMMIT=$(git rev-parse "$TAG_NAME^{commit}")
+          echo "Tag '$TAG_NAME' points to commit: $TAG_COMMIT"
+          
+          # Get branch HEAD
+          BRANCH_HEAD=$(git rev-parse "origin/$BRANCH")
+          echo "Branch '$BRANCH' HEAD: $BRANCH_HEAD"
+          
+          # Check if tag commit exists in branch history
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" "origin/$BRANCH" 2>/dev/null; then
+            # Check if tag is ahead of branch
+            if git merge-base --is-ancestor "$BRANCH_HEAD" "$TAG_COMMIT" 2>/dev/null; then
+              echo "::error::❌ Tag commit is AHEAD of branch HEAD"
+              echo ""
+              echo "Tag '$TAG_NAME' points to: $TAG_COMMIT"
+              echo "Branch '$BRANCH' is at: $BRANCH_HEAD"
+              echo ""
+              echo "This means the commits for this tag were not pushed to '$BRANCH' yet."
+              echo ""
+              echo "To fix:"
+              echo "  1. Push your commits first: git push origin $BRANCH"
+              echo "  2. Then push the tag: git push origin $TAG_NAME"
+              echo ""
+              echo "⚠️  The workflow will fail because:"
+              echo "   - Version-bump checks out branch '$BRANCH' at $BRANCH_HEAD"
+              echo "   - Changelog generation won't see tag '$TAG_NAME'"
+              echo "   - git-describe will find an older tag instead"
+              echo ""
+              exit 1
+            else
+              echo "::error::❌ Tag commit is not in the history of branch '$BRANCH'"
+              echo ""
+              echo "Tag '$TAG_NAME' points to commit $TAG_COMMIT"
+              echo "This commit is NOT an ancestor of origin/$BRANCH"
+              echo ""
+              echo "This means either:"
+              echo "  1. The tag is on a different branch"
+              echo "  2. The tag was created from a stale local branch"
+              echo "  3. The branches have diverged"
+              echo ""
+              echo "To fix:"
+              echo "  1. Verify: git log --oneline --graph --all"
+              echo "  2. Ensure tag is on correct branch"
+              echo "  3. Delete and recreate tag: git tag -d $TAG_NAME && git tag -s $TAG_NAME"
+              echo ""
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Tag commit $TAG_COMMIT is in branch '$BRANCH' history"
+          
+          # Check position relative to branch HEAD
+          if [ "$TAG_COMMIT" = "$BRANCH_HEAD" ]; then
+            echo "✅ Tag points to branch HEAD (ideal)"
+          else
+            echo "ℹ️  Tag commit is an ancestor of branch HEAD"
+            echo "   This is normal for existing releases"
+          fi
+      
       - name: Check Release Authorization
         if: ${{ inputs.checkAuthorization }}
         run: |
@@ -350,21 +450,14 @@ jobs:
       
       - name: Validate Release Token
         run: |
-          # RELEASE_TOKEN is optional but recommended
+          # RELEASE_TOKEN is required for creating GitHub releases
           TOKEN="${{ secrets.RELEASE_TOKEN }}"
           if [ -z "$TOKEN" ]; then
-            echo "::warning::RELEASE_TOKEN not configured"
-            echo "Will fall back to GITHUB_TOKEN for release creation"
-            echo "Note: GITHUB_TOKEN may have limitations for release creation"
-            
-            # Test if GITHUB_TOKEN can at least read releases
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              https://api.github.com/repos/${{ github.repository }}/releases)
-            
-            if [ "$RESPONSE" != "200" ]; then
-              echo "::warning::GITHUB_TOKEN may not have sufficient permissions for releases"
-            fi
+            echo "::error::Missing RELEASE_TOKEN secret"
+            echo "This token is required for creating GitHub releases"
+            echo "GITHUB_TOKEN cannot be used as it lacks permissions when workflows chain"
+            echo "Add it in Settings → Secrets → Actions"
+            exit 1
           else
             # Test RELEASE_TOKEN
             RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -377,6 +470,42 @@ jobs:
             fi
             echo "✅ Release token validated"
           fi
+      
+      - name: Validate Bot Token Permissions
+        env:
+          GH_TOKEN: ${{ secrets.OSPO_BOT_GHTOKEN }}
+        run: |
+          echo "Validating bot token permissions..."
+          
+          # Check if the bot token is available
+          if [ -z "${{ secrets.OSPO_BOT_GHTOKEN }}" ]; then
+            echo "::error::Cannot validate bot permissions without OSPO_BOT_GHTOKEN"
+            exit 1
+          fi
+          
+          # Test if token can authenticate (without revealing details)
+          if ! gh api user --silent 2>/dev/null; then
+            echo "::error::OSPO_BOT_GHTOKEN is invalid or expired"
+            exit 1
+          fi
+          
+          # Test if token has basic repository access (without revealing who/what permissions)
+          if ! gh api repos/${{ github.repository }} --silent 2>/dev/null; then
+            echo "::error::Bot token cannot access this repository"
+            echo "Please ensure the bot has appropriate repository access"
+            exit 1
+          fi
+          
+          # Try to check for write permissions by querying branches (less revealing)
+          if ! gh api repos/${{ github.repository }}/branches --silent 2>/dev/null; then
+            echo "::warning::Bot token may have limited permissions"
+            echo "Ensure the bot has sufficient permissions to:"
+            echo "  - Push commits to branches"
+            echo "  - Create and move tags"
+            echo "  - Bypass branch protection (if enabled)"
+          fi
+          
+          echo "✅ Bot token is valid and has repository access"
       
       - name: Validate Maven Central Credentials
         if: ${{ inputs.artifactPublisher == 'maven-lib-mavencentral' }}
@@ -467,7 +596,7 @@ jobs:
           | **Project Type** | ${{ inputs.projectType }} |
           | **Artifact Publisher** | ${{ inputs.artifactPublisher }} |
           | **Container Registry** | ${{ inputs.containerRegistry }} |
-          | **JReleaser** | ${{ inputs.useJReleaser && '✅ Enabled' || '⭕ Disabled' }} |
+          | **Release Publisher** | ${{ inputs.useJReleaser && '✅ JReleaser' || '✅ GitHub CLI' }} |
           | **GPG Signing** | ${{ inputs.signArtifacts && '✅ Enabled' || '⭕ Disabled' }} |
           EOF
           
@@ -493,8 +622,20 @@ jobs:
           
           if [ -n "${{ secrets.OSPO_BOT_GHTOKEN }}" ]; then
             echo "| OSPO_BOT_GHTOKEN | Push commits | ✅ Available |" >> $GITHUB_STEP_SUMMARY
+            
+            # Check bot token validity (without revealing permissions details)
+            BOT_STATUS="❓ Not verified"
+            # Check if token can access the repository
+            if GH_TOKEN="${{ secrets.OSPO_BOT_GHTOKEN }}" gh api repos/${{ github.repository }} --silent 2>/dev/null; then
+              BOT_STATUS="✅ Valid token"
+            else
+              BOT_STATUS="❌ Invalid/No access"
+            fi
+            
+            echo "| Bot Token Status | Repository access | $BOT_STATUS |" >> $GITHUB_STEP_SUMMARY
           else
             echo "| OSPO_BOT_GHTOKEN | Push commits | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+            echo "| Bot Token Status | Repository access | ❓ No token |" >> $GITHUB_STEP_SUMMARY
           fi
           
           # GPG Public Key (if signing enabled)
@@ -502,14 +643,38 @@ jobs:
             if [ -n "${{ secrets.OSPO_BOT_GPG_PUB }}" ]; then
               echo "| OSPO_BOT_GPG_PUB | GPG verification | ✅ Available |" >> $GITHUB_STEP_SUMMARY
             else
-              echo "| OSPO_BOT_GPG_PUB | GPG verification | ⚠️ Optional |" >> $GITHUB_STEP_SUMMARY
+              echo "| OSPO_BOT_GPG_PUB | GPG verification | ❌ Required |" >> $GITHUB_STEP_SUMMARY
             fi
           fi
           
           if [ -n "${{ secrets.RELEASE_TOKEN }}" ]; then
             echo "| RELEASE_TOKEN | Create releases | ✅ Available |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| RELEASE_TOKEN | Create releases | ⚠️ Optional |" >> $GITHUB_STEP_SUMMARY
+            echo "| RELEASE_TOKEN | Create releases | ❌ Required |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Maven Central credentials (if maven-lib-mavencentral publisher)
+          if [ "${{ inputs.artifactPublisher }}" = "maven-lib-mavencentral" ]; then
+            if [ -n "${{ secrets.MAVENCENTRAL_USERNAME }}" ]; then
+              echo "| MAVENCENTRAL_USERNAME | Maven Central auth | ✅ Available |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| MAVENCENTRAL_USERNAME | Maven Central auth | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ -n "${{ secrets.MAVENCENTRAL_PASSWORD }}" ]; then
+              echo "| MAVENCENTRAL_PASSWORD | Maven Central auth | ✅ Available |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| MAVENCENTRAL_PASSWORD | Maven Central auth | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # NPM token (only for npmjs.org publishing, not GitHub Packages)
+          if [[ "${{ inputs.artifactPublisher }}" == "npm-app-npmjs" ]]; then
+            if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
+              echo "| NPM_TOKEN | NPM registry auth | ✅ Available |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| NPM_TOKEN | NPM registry auth | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
           
           echo ""
@@ -570,18 +735,21 @@ jobs:
           # Publisher-specific checks
           case "${{ inputs.artifactPublisher }}" in
             maven-lib-mavencentral)
-              if [ -n "${{ secrets.MAVEN_CENTRAL_USERNAME }}" ]; then
+              if [ -n "${{ secrets.MAVENCENTRAL_USERNAME }}" ]; then
                 echo "| Maven Central | ✅ Pass | Credentials configured |" >> $GITHUB_STEP_SUMMARY
               else
                 echo "| Maven Central | ❌ Fail | Missing credentials |" >> $GITHUB_STEP_SUMMARY
               fi
               ;;
-            npm-*)
+            npm-app-npmjs)
               if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
                 echo "| NPM Registry | ✅ Pass | Token configured |" >> $GITHUB_STEP_SUMMARY
               else
                 echo "| NPM Registry | ❌ Fail | Missing NPM_TOKEN |" >> $GITHUB_STEP_SUMMARY
               fi
+              ;;
+            npm-app-github)
+              echo "| NPM Registry | ✅ Pass | Using GITHUB_TOKEN |" >> $GITHUB_STEP_SUMMARY
               ;;
           esac
           
