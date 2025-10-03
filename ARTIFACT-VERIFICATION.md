@@ -1,8 +1,6 @@
 # Artifact Verification Guide
 
-This guide explains how to verify the authenticity and integrity of artifacts produced by default DiggSweden workflows.
-
-Verifying artifacts prevents tampering, ensures authenticity, and protects against supply chain attacks in your CI/CD pipeline.
+Documentation for verifying the authenticity and integrity of artifacts produced by DiggSweden workflows.
 
 ## What Can Be Verified
 
@@ -28,15 +26,15 @@ All verification methods use industry-standard cryptographic signatures and atte
 | **SBOM** | Compliance | Dependency transparency | Security audits |
 | **Commit Signatures** | High | Developer authenticity | Code review & audits |
 
-## Why Verify?
+## Purpose
 
-Verifying artifacts prevents tampering, ensures authenticity, and protects against supply chain attacks in your CI/CD pipeline.
+Artifact verification prevents tampering and validates authenticity in CI/CD pipelines.
 
 ## Full Verification Guide
 
 ### 1. Container Image Verification
 
-**What it proves**: Container images are authentic and built by official DiggSweden CI.
+**Verification scope**: Container authenticity and DiggSweden CI build origin.
 
 #### Verify Container Signature
 
@@ -88,7 +86,7 @@ cosign download attestation \
 
 ### 2. Maven Artifact Verification
 
-**What it proves**: JAR files are signed by OSPO_BOT and unmodified.
+**Verification scope**: OSPO_BOT signature and artifact integrity.
 
 #### Verify GPG Signature
 
@@ -117,7 +115,7 @@ gpg --verify ${ARTIFACT}.jar.asc ${ARTIFACT}.jar
 
 ### 3. NPM Package Verification
 
-**What it proves**: Package integrity and provenance.
+**Verification scope**: Package integrity and build provenance.
 
 ```bash
 # Verify NPM package provenance (npm 9.5+ required)
@@ -129,7 +127,7 @@ npm view @diggsweden/${PACKAGE} --json | jq '.attestations'
 
 ### 4. Release Artifact Verification
 
-**What it proves**: Release artifacts are authentic and signed.
+**Verification scope**: Release artifact authenticity and signatures.
 
 #### Download and Verify Release Assets
 
@@ -151,7 +149,7 @@ sha256sum -c checksums.txt --ignore-missing
 
 ### 5. SSH Key Setup for Git Verification
 
-**Important**: To verify SSH signatures on tags or commits, you need to configure Git with the signer's public keys.
+**Requirement**: SSH signature verification requires configuring Git with signer public keys.
 
 #### Configure SSH Signature Verification
 
@@ -178,7 +176,7 @@ echo "ospo@digg.se $(cat /tmp/diggsweden-bot.keys)" >> ~/.ssh/allowed_signers
 
 ### 6. Git Tag Verification
 
-**What it proves**: Release tags are signed and authentic.
+**Verification scope**: Tag signatures and authenticity.
 
 ```bash
 # Fetch tags
@@ -193,7 +191,7 @@ git verify-tag v1.0.0 --raw
 
 ### 7. Git Commit Verification
 
-**What it proves**: Commits are made by verified developers with valid GPG or SSH signatures.
+**Verification scope**: Developer identity via GPG or SSH signatures.
 
 **Note**: SSH signature verification requires SSH key setup from section 5.
 

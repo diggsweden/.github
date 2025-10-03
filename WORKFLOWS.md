@@ -18,7 +18,7 @@
 
 ## Introduction for New Users
 
-This repository provides reusable GitHub Actions workflows for all DiggSweden projects. Instead of writing CI/CD pipelines from scratch, you can use our pre-built, tested, and secure workflow chains, following good Open Source practices.
+This repository contains reusable GitHub Actions workflows for DiggSweden projects. These workflows provide pre-built CI/CD pipelines following Open Source practices.
 
 ### Core Concepts
 
@@ -43,11 +43,11 @@ Currently, there are **two main workflow chains**:
 
 ### Flexibility
 
-**Everything is configurable.** You can:
-- **Use the complete chains** - Get everything with minimal configuration
-- **Disable features you don't need** - Skip linters, disable signing, remove SBOM generation
-- **Pick individual components** - Build your own workflow using just the pieces you need
-- **Mix and match** - Use our container builder with your custom release process
+All components are configurable:
+- **Use complete chains** - Full functionality with minimal configuration
+- **Disable specific features** - Skip linters, disable signing, remove SBOM generation
+- **Use individual components** - Build custom workflows using specific components
+- **Combine approaches** - Use specific builders with custom release processes
 - **Use nothing at all** - Write everything yourself (but then you need to implement security scanning, license compliance, SBOM generation, signing, etc. to meet organizational requirements)
 
 ### Getting Started
@@ -112,7 +112,7 @@ The workflows handle all the complexity:
 
 ### Customization Levels
 
-#### Option 1: Use Everything (Easiest)
+#### Option 1: Use Everything
 ```yaml
 uses: diggsweden/.github/.github/workflows/release-orchestrator.yml@main
 with:
@@ -264,18 +264,67 @@ jobs:
       releasePublisher: jreleaser  # Creates GitHub release with changelog
 ```
 
+### Dev Release Workflow Example
+```yaml
+# .github/workflows/release-workflow-dev.yml
+name: Dev Release
+
+on:
+  push:
+    branches:
+      - 'dev/**'   # Matches dev/feature-x, dev/fix-y
+      - 'feat/**'  # Matches feat/new-api, feat/cool-stuff
+
+permissions:
+  contents: read
+
+jobs:
+  dev-release:
+    uses: diggsweden/.github/.github/workflows/release-dev-orchestrator.yml@main
+    permissions:
+      contents: write   # Version bump commits
+      packages: write   # Push dev containers to ghcr.io
+    with:
+      projectType: maven  # or npm
+    secrets: inherit
+```
+
+**Dev Release Features:**
+- ✅ Version bump with `-dev` suffix (e.g., `1.2.4-dev.1`)
+- ✅ Multi-arch container with `dev-<sha>` tag (e.g., `dev-1c14495`)
+- ✅ Maven/NPM package publication with dev version
+- ✅ Artifact summary generation
+- ⏱️ 2-3 minute execution (multi-arch build with dependency caching)
+- ❌ No SLSA attestations
+- ❌ No SBOM generation
+- ❌ No vulnerability scanning
+- ❌ No GitHub release
+
+**Triggering Dev Releases:**
+```bash
+# Push to a dev or feat branch
+git push -u origin feat/my-feature
+```
+
+**Pull Dev Images:**
+```bash
+docker pull ghcr.io/diggsweden/your-project:dev-1c14495
+# or
+podman pull ghcr.io/diggsweden/your-project:dev-1c14495
+```
+
 ---
 
 ## Pull Request Workflow
 
-The PR workflow runs quality checks on every push and pull request.
+Quality checks executed on pull requests and pushes.
 
-### What It Does
-1. **Linting** - Code style and quality checks
-2. **License Scanning** - Validates licenses
-3. **Security Scanning** - SAST, dependency checks
-4. **Builds** - Compiles the project
-5. **Tests** - Runs unit tests (if you chain a test job)
+### Workflow Steps
+1. **Linting** - Code style and quality validation
+2. **License Scanning** - License compliance verification
+3. **Security Scanning** - SAST and dependency analysis
+4. **Build** - Project compilation
+5. **Tests** - Unit test execution (when test job is chained)
 
 ### Full Configuration Example (Maven Application)
 ```yaml
@@ -399,16 +448,16 @@ jobs:
 
 ## Release Workflow
 
-The release workflow handles the complete release process when you push a version tag.
+Complete release process triggered by version tags.
 
-### What It Does
-1. **Version Validation** - Ensures tag matches project version
-2. **Build Artifacts** - Creates JARs, NPM packages
-3. **Container Images** - Builds and pushes Docker images
-4. **Security** - Generates SBOM, signs artifacts, SLSA attestation
-5. **Changelog** - Generates release notes with git-cliff
-6. **GitHub Release** - Creates release with all assets
-7. **Publishing** - Deploys to Maven Central, NPM, GitHub Packages
+### Release Steps
+1. **Version Validation** - Tag and project version matching
+2. **Build Artifacts** - JAR and NPM package creation
+3. **Container Images** - Docker image build and registry push
+4. **Security** - SBOM generation, artifact signing, SLSA attestation
+5. **Changelog** - Release notes via git-cliff
+6. **GitHub Release** - Release creation with assets
+7. **Publishing** - Deployment to Maven Central, NPM, GitHub Packages
 
 ### Full Configuration Example (With Defaults)
 ```yaml
@@ -518,47 +567,59 @@ The following tags will NOT trigger releases:
 
 ---
 
-## Development Container Workflow
+## Development Container Workflow (2-3 minutes)
 
-Fast container builds for development without release overhead.
+Container builds for development environments.
 
 ### What It Does
-1. **Builds project** - Maven/NPM build
-2. **Creates container** - Single platform (amd64)
-3. **Pushes to registry** - With SHA-based tags
-4. **Skips** - No SBOM, signing, multi-arch, or release
+- **Version bump** - Adds `-dev` suffix (e.g., `1.2.4-dev.1`)
+- **Builds project** - Maven/NPM build with dependency caching
+- **Creates container** - Multi-platform (linux/amd64, linux/arm64)
+- **Pushes to registry** - With `dev-<sha>` tags
+- **Publishes packages** - Maven/NPM artifacts with dev version
+- **Generates summary** - Shows all created artifacts
+- **Fast execution** - Completes in 2-3 minutes with multi-arch
+- ❌ **Skips production features** - No SLSA, SBOM, signing, or GitHub release
 
 ### Configuration
 ```yaml
-# .github/workflows/dev-image.yml
-name: Build Dev Image
+# .github/workflows/release-workflow-dev.yml
+name: Dev Release
 
 on:
   push:
     branches:
-      - develop
-      - 'feature/**'
+      - 'dev/**'   # Matches dev/feature-x, dev/fix-y
+      - 'feat/**'  # Matches feat/new-api, feat/cool-stuff
 
 permissions:
   contents: read
 
 jobs:
-  build-dev:
+  dev-release:
     uses: diggsweden/.github/.github/workflows/release-dev-orchestrator.yml@main
-    secrets: inherit
     permissions:
-      contents: read
-      packages: write  # Push images to ghcr.io
+      contents: write   # Version bump commits
+      packages: write   # Push dev containers to ghcr.io
     with:
-      projectType: maven
-      containerfile: "Containerfile"  # Default: Containerfile
-      registry: "ghcr.io"          # GitHub Container Registry (free for public repos)
-      workingDirectory: "."        # Build context (use "services/api" for monorepos)
+      projectType: maven  # or npm
+    secrets: inherit
+```
+
+### Triggering Dev Releases
+```bash
+# Push to a dev or feat branch
+git push origin feat/my-feature
 ```
 
 ### Output
-Creates containers with SHA tags:
-- `ghcr.io/diggsweden/your-repo:abc1234-dev`
+Creates containers with dev SHA tags:
+- `ghcr.io/diggsweden/your-repo:dev-abc1234`
+
+Pull the image:
+```bash
+podman pull ghcr.io/diggsweden/your-repo:dev-abc1234
+```
 
 ---
 
@@ -880,49 +941,7 @@ jobs:
 
 ---
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Branch reference**
-   - Projects should reference `@main` for stable workflows
-   - This will be updated once the feature branch is merged
-
-2. **Release fails with "version mismatch"**
-   - Ensure your tag matches the version in pom.xml or package.json
-   - Use exact version: tag `v1.0.0` must match version `1.0.0`
-
-2. **Container build fails**
-   - Verify Container/Dockerfile exists in repository root
-   - Check that build artifacts are created first
-
-3. **Maven Central publishing fails**
-   - Ensure `MAVEN_CENTRAL_USERNAME` and `MAVEN_CENTRAL_PASSWORD` secrets are set
-   - Verify `.mvn/settings.xml` exists if specified
-
-4. **GPG signing fails**
-   - Set `GPG_SECRET_KEY` and `GPG_PASSPHRASE` secrets
-   - Or disable with `signatures: false`
-
-### Getting Help
-
-- Check workflow run logs in GitHub Actions tab
-- Review this documentation
-- Open an issue in the `.github` repository
-
----
-
-## Migration Guide
-
-### From Custom Workflows
-
-1. Identify your project type (Maven/NPM)
-2. Choose appropriate publishers and builders
-3. Copy the basic configuration
-4. Add any specific settings
-5. Test with a pre-release tag first
-
-### Version Tag Format
+## Version Tag Format
 
 **Allowed tags for releases:**
 - Production: `v1.0.0`, `v2.3.4`

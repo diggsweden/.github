@@ -101,12 +101,13 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'maven'
+          cache: 'maven'  # This already caches ~/.m2/repository
 
       - name: Build with Maven
         if: inputs.projectType == 'maven'
         working-directory: ${{ inputs.workingDirectory }}
         run: |
+          # The setup-java cache handles dependencies
           mvn clean package -DskipTests -Dstyle.color=always
 
       # NPM build
@@ -115,13 +116,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: 'npm'  # This already caches ~/.npm
 
       - name: Build with NPM
         if: inputs.projectType == 'npm'
         working-directory: ${{ inputs.workingDirectory }}
         run: |
-          npm ci
+          npm ci --prefer-offline --no-audit
           npm run build
 
       - name: Set up Buildx
@@ -137,11 +138,11 @@ jobs:
       - name: Generate dev tags
         id: tags
         run: |
-          # Simple sha-based tag with -dev suffix
+          # Dev tag with sha at the end
           SHORT_SHA=${GITHUB_SHA:0:7}
           IMAGE_NAME="${{ inputs.registry }}/${{ github.repository }}"
-          echo "tags=${IMAGE_NAME}:${SHORT_SHA}-dev" >> $GITHUB_OUTPUT
-          echo "image=${IMAGE_NAME}:${SHORT_SHA}-dev" >> $GITHUB_OUTPUT
+          echo "tags=${IMAGE_NAME}:dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "image=${IMAGE_NAME}:dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build
@@ -151,7 +152,7 @@ jobs:
           file: ${{ inputs.workingDirectory }}/${{ inputs.containerfile }}
           push: true
           tags: ${{ steps.tags.outputs.tags }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # Disable all security features for dev builds
