@@ -116,6 +116,16 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
       
+      - name: Checkout .github repository for scripts
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ${{ github.action_repository }}
+          ref: ${{ github.action_ref }}
+          path: .github-shared
+          sparse-checkout: |
+            .github/scripts
+          sparse-checkout-cone-mode: false
+      
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
         with:
@@ -132,13 +142,13 @@ jobs:
       
       - name: Validate Tag Format
         if: ${{ github.ref_type == 'tag' }}
-        run: .github/scripts/validate-tag-format.sh "${{ github.ref_name }}"
+        run: bash .github-shared/.github/scripts/validate-tag-format.sh "${{ github.ref_name }}"
       
       - name: Validate Tag Signature
         if: ${{ github.ref_type == 'tag' }}
         env:
           OSPO_BOT_GPG_PUB: ${{ secrets.OSPO_BOT_GPG_PUB }}
-        run: .github/scripts/validate-tag-signature.sh "${{ github.ref_name }}" "${{ github.repository }}" "$OSPO_BOT_GPG_PUB"
+        run: bash .github-shared/.github/scripts/validate-tag-signature.sh "${{ github.ref_name }}" "${{ github.repository }}" "$OSPO_BOT_GPG_PUB"
       
       - name: Validate Tag Uniqueness
         if: ${{ github.ref_type == 'tag' }}
@@ -171,7 +181,7 @@ jobs:
       
       - name: Validate Tag Commit Availability
         if: ${{ github.ref_type == 'tag' }}
-        run: .github/scripts/validate-tag-commit.sh "${{ github.ref_name }}" "${{ inputs.branch }}"
+        run: bash .github-shared/.github/scripts/validate-tag-commit.sh "${{ github.ref_name }}" "${{ inputs.branch }}"
       
       # ============================================================================
       # SECTION 2: Authorization Validation
