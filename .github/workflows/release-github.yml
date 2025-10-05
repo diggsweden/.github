@@ -201,6 +201,38 @@ jobs:
           echo "✅ Maven artifacts available for JReleaser:"
           ls -lh target/*.jar
 
+      # Download container SBOM if it exists (from container build job)
+      - name: Download container SBOM artifacts (JReleaser path)
+        if: ${{ inputs.useJReleaser }}
+        continue-on-error: true
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        with:
+          name: container-sbom-${{ github.run_id }}
+          path: ./sbom-artifacts/
+
+      - name: Generate SBOMs from build manifest (JReleaser path)
+        if: ${{ inputs.useJReleaser }}
+        run: |
+          # Install Syft if not available
+          if ! command -v syft &> /dev/null; then
+            echo "Installing Syft..."
+            curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /tmp
+            export PATH="/tmp:$PATH"
+          fi
+          
+          # Generate SBOMs from pom.xml (idiomatic for Maven projects)
+          if [ -f "pom.xml" ]; then
+            echo "Generating SBOM from pom.xml"
+            PROJECT_NAME=$(basename ${{ github.repository }})
+            syft pom.xml -o spdx-json > "${PROJECT_NAME}.spdx.json"
+            syft pom.xml -o cyclonedx-json > "${PROJECT_NAME}.cyclonedx.json"
+          elif [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+            echo "Generating SBOM from build.gradle"
+            PROJECT_NAME=$(basename ${{ github.repository }})
+            syft . -o spdx-json > "${PROJECT_NAME}.spdx.json"
+            syft . -o cyclonedx-json > "${PROJECT_NAME}.cyclonedx.json"
+          fi
+
       - name: Run JReleaser
         if: ${{ inputs.useJReleaser }}
         env:
@@ -282,16 +314,29 @@ jobs:
             export PATH="/tmp:$PATH"
           fi
           
-          # Generate SBOMs for the project (not individual JARs which lack dependency info)
-          PROJECT_NAME=$(basename ${{ github.repository }})
-          VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#v}"  # Remove 'v' prefix
+          # Generate SBOMs based on project type (scan build manifests)
+          echo "Detecting project type and generating SBOMs..."
           
-          # Generate SBOM for the entire project directory (includes all dependencies)
-          echo "Generating SBOM for project directory..."
-          ARTIFACT_NAME="${PROJECT_NAME}-${VERSION}"
-          syft . -o spdx-json > "${ARTIFACT_NAME}.spdx.json"
-          syft . -o cyclonedx-json > "${ARTIFACT_NAME}.cyclonedx.json"
+          PROJECT_NAME=$(basename ${{ github.repository }})
+          
+          # Maven project: Scan pom.xml
+          if [ -f "pom.xml" ]; then
+            echo "Found Maven project, generating SBOM from pom.xml"
+            syft pom.xml -o spdx-json > "${PROJECT_NAME}.spdx.json"
+            syft pom.xml -o cyclonedx-json > "${PROJECT_NAME}.cyclonedx.json"
+          # Gradle project: Scan build.gradle or build.gradle.kts
+          elif [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+            echo "Found Gradle project, generating SBOM from build.gradle"
+            syft . -o spdx-json > "${PROJECT_NAME}.spdx.json"
+            syft . -o cyclonedx-json > "${PROJECT_NAME}.cyclonedx.json"
+          # NPM project: Scan package.json
+          elif [ -f "package.json" ]; then
+            echo "Found NPM project, generating SBOM from package.json"
+            syft . -o spdx-json > "${PROJECT_NAME}.spdx.json"
+            syft . -o cyclonedx-json > "${PROJECT_NAME}.cyclonedx.json"
+          else
+            echo "Warning: No recognized build manifest found (pom.xml, build.gradle, package.json)"
+          fi
 
       - name: Generate checksums and signatures
         if: ${{ !inputs.useJReleaser }}
@@ -334,9 +379,11 @@ jobs:
             done
           fi
           
-          # Add checksums for generated SBOMs
+          # Add checksums for generated SBOMs (in root directory from build manifests)
           for sbom in *.spdx.json *.cyclonedx.json; do
-            [ -f "$sbom" ] && sha256sum "$sbom" >> checksums.sha256
+            if [ -f "$sbom" ]; then
+              sha256sum "$sbom" >> checksums.sha256
+            fi
           done
           
           # Sign the checksums file if GPG is configured
@@ -360,22 +407,27 @@ jobs:
           fi
           
           # Zip SBOMs and sign the zip (to match JReleaser output)
-          if ls *.spdx.json *.cyclonedx.json 2>/dev/null || [ -d "./sbom-artifacts" ]; then
+          SBOM_COUNT=$(ls *.spdx.json *.cyclonedx.json 2>/dev/null | wc -l)
+          [ -d "./sbom-artifacts" ] && SBOM_COUNT=$((SBOM_COUNT + $(ls ./sbom-artifacts/*.json 2>/dev/null | wc -l)))
+          
+          if [ "$SBOM_COUNT" -gt 0 ]; then
             echo "Creating SBOM zip archive"
             PROJECT_NAME=$(basename ${{ github.repository }})
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"  # Remove 'v' prefix if present
             SBOM_ZIP="${PROJECT_NAME}-${VERSION}-sboms.zip"
             
-            # Add all generated SBOMs to zip (named after artifacts)
+            # Add project SBOMs to zip (from root directory)
             for sbom in *.spdx.json *.cyclonedx.json; do
-              [ -f "$sbom" ] && zip "$SBOM_ZIP" "$sbom"
+              if [ -f "$sbom" ]; then
+                zip "$SBOM_ZIP" "$sbom"
+              fi
             done
             
             # Add container SBOMs to zip if they exist
             if [ -d "./sbom-artifacts" ]; then
               for sbom in ./sbom-artifacts/*.json; do
-                [ -f "$sbom" ] && zip "$SBOM_ZIP" "$sbom"
+                [ -f "$sbom" ] && zip -j "$SBOM_ZIP" "$sbom"
               done
             fi
             

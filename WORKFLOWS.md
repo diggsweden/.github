@@ -196,10 +196,11 @@ graph LR
 
 ### Getting Started
 
-Most projects require two files:
+Most projects require two or three files:
 
 1. **`.github/workflows/pullrequest-workflow.yml`** - For PR checks
-2. **`.github/workflows/release-workflow.yml`** - For releases
+2. **`.github/workflows/release-workflow.yml`** - For production releases
+3. **`.github/workflows/release-workflow-dev.yml`** - (Optional) For dev/feature branch releases
 
 Simple Maven based example
 ```yaml
@@ -229,6 +230,37 @@ jobs:
     with:
       projectType: maven
 ```
+
+```yaml
+# release-workflow-dev.yml (Optional - for dev/feature branches)
+name: Release Workflow Dev
+
+on:
+  push:
+    branches:
+      - 'dev/**'
+      - 'feat/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dev-release:
+    uses: diggsweden/.github/.github/workflows/release-dev-orchestrator.yml@main
+    permissions:
+      contents: write  # Create version bump commits
+      packages: write  # Push dev container images
+    secrets: inherit
+    with:
+      projectType: maven
+```
+
+**When to use dev workflow:**
+- Automatic dev releases on dev/feat branches
+- Creates container images tagged with branch name (e.g., `1.2.3-dev-feat-awesome-abc1234`)
+- Tests release process before production
+- Enables testing of container images from feature branches
 
 ### Prerequisites
 
