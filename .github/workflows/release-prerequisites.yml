@@ -119,9 +119,24 @@ jobs:
       - name: Checkout .github repository for scripts
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          repository: ${{ github.action_repository }}
+          repository: diggsweden/.github
           ref: ${{ github.action_ref }}
           path: .github-shared
+      
+      - name: Debug - List checked out files
+        run: |
+          echo "=== Workspace structure ==="
+          ls -la
+          echo ""
+          echo "=== .github-shared structure ==="
+          ls -la .github-shared/ || echo ".github-shared not found"
+          echo ""
+          echo "=== Looking for scripts ==="
+          find .github-shared -name "validate-*.sh" 2>/dev/null || echo "No scripts found"
+          echo ""
+          echo "=== GitHub context ==="
+          echo "action_repository: ${{ github.action_repository }}"
+          echo "action_ref: ${{ github.action_ref }}"
       
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
