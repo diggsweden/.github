@@ -3,6 +3,7 @@
 ## Table of Contents
 - [Introduction for New Users](#introduction-for-new-users)
 - [Workflow Architecture](#workflow-architecture)
+- [JReleaser Integration Patterns](#jreleaser-integration-patterns)
 - [Quick Start](#quick-start)
 - [Pull Request Workflow](#pull-request-workflow)
 - [Release Workflow](#release-workflow)
@@ -14,8 +15,8 @@
 - [Getting Access to Secrets](#getting-access-to-secrets)
 - [Complete Workflow Reference](#complete-workflow-reference)
 - [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
-- [Migration Guide](#migration-guide)
+- [Version Tag Format](#version-tag-format)
+- [Local Testing](#local-testing)
 
 ## Introduction for New Users
 
@@ -524,6 +525,10 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+-snapshot*"    # Snapshot: v1.0.0-snapshot
       - "v[0-9]+.[0-9]+.[0-9]+-SNAPSHOT*"    # Snapshot: v1.0.0-SNAPSHOT
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false  # Queue releases, don't cancel partial releases
+
 permissions:
   contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
 
@@ -572,7 +577,7 @@ jobs:
 
 **Dev Release Features:**
 - ✅ Version bump with `-dev` suffix (e.g., `1.2.4-dev.1`)
-- ✅ Multi-arch container with `dev-<sha>` tag (e.g., `dev-1c14495`)
+- ✅ Multi-arch container with `dev-<branch>-<sha>` tag (e.g., `0.5.9-dev-feat-awesome-cdb5e47`)
 - ✅ Maven/NPM package publication with dev version
 - ✅ Artifact summary generation
 - ⏱️ 2-3 minute execution (multi-arch build with dependency caching)
@@ -589,9 +594,9 @@ git push -u origin feat/my-feature
 
 **Pull Dev Images:**
 ```bash
-docker pull ghcr.io/diggsweden/your-project:dev-1c14495
+docker pull ghcr.io/diggsweden/your-project:0.5.9-dev-feat-my-feature-cdb5e47
 # or
-podman pull ghcr.io/diggsweden/your-project:dev-1c14495
+podman pull ghcr.io/diggsweden/your-project:0.5.9-dev-feat-my-feature-cdb5e47
 ```
 
 ---
@@ -848,7 +853,7 @@ The following tags will NOT trigger releases:
 
 ---
 
-## Development Container Workflow (2-3 minutes)
+## Development Container Workflow
 
 Container builds for development environments.
 
@@ -856,7 +861,7 @@ Container builds for development environments.
 - **Version bump** - Adds `-dev` suffix (e.g., `1.2.4-dev.1`)
 - **Builds project** - Maven/NPM build with dependency caching
 - **Creates container** - Multi-platform (linux/amd64, linux/arm64)
-- **Pushes to registry** - With `dev-<sha>` tags
+- **Pushes to registry** - With branch-aware tags (e.g., `0.5.9-dev-feat-awesome-cdb5e47`)
 - **Publishes packages** - Maven/NPM artifacts with dev version
 - **Generates summary** - Shows all created artifacts
 - **Fast execution** - Completes in 2-3 minutes with multi-arch
@@ -894,12 +899,12 @@ git push origin feat/my-feature
 ```
 
 ### Output
-Creates containers with dev SHA tags:
-- `ghcr.io/diggsweden/your-repo:dev-abc1234`
+Creates containers with branch-aware dev tags:
+- `ghcr.io/diggsweden/your-repo:0.5.9-dev-feat-awesome-abc1234`
 
 Pull the image:
 ```bash
-podman pull ghcr.io/diggsweden/your-repo:dev-abc1234
+podman pull ghcr.io/diggsweden/your-repo:0.5.9-dev-feat-awesome-abc1234
 ```
 
 ---
@@ -1193,6 +1198,7 @@ jobs:
       containerBuilder: containerimage-ghcr # Docker image with Node.js app
       releasePublisher: github-cli          # GitHub CLI for releases
       artifact.nodeversion: "22"            # Latest Node.js LTS
+      file_pattern: "CHANGELOG.md package.json package-lock.json"  # Files to commit in version bump
 ```
 
 ### Maven Library (No Container)
@@ -1234,6 +1240,41 @@ jobs:
 **Development builds (NOT from tags):**
 - Branch pushes create SHA-based tags: `abc1234-dev`
 - Tags like `v1.0.0-dev` are explicitly excluded from releases
+
+---
+
+## Local Testing
+
+The release workflow includes several validation scripts that you can run locally before creating a tag:
+
+### Tag Format Validation
+```bash
+.github/scripts/validate-tag-format.sh v1.2.3
+```
+Validates that your tag follows semantic versioning and allowed pre-release formats.
+
+### Tag Signature Validation
+```bash
+.github/scripts/validate-tag-signature.sh v1.2.3
+```
+Verifies that the tag is GPG-signed and the signature is valid.
+
+### Tag Commit Validation
+```bash
+.github/scripts/validate-tag-commit.sh v1.2.3
+```
+Checks that the tag points to the current HEAD commit (prevents accidental old tag pushes).
+
+### Running All Validations
+```bash
+# Example: Validate tag v1.2.3 before pushing
+.github/scripts/validate-tag-format.sh v1.2.3 && \
+.github/scripts/validate-tag-signature.sh v1.2.3 && \
+.github/scripts/validate-tag-commit.sh v1.2.3 && \
+echo "✅ All validations passed - safe to push tag"
+```
+
+See `.github/scripts/README.md` for detailed documentation.
 
 ---
 

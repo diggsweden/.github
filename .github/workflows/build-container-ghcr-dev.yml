@@ -12,7 +12,7 @@
 # 1. Checks out repository code
 # 2. Builds project (Maven package or NPM build)
 # 3. Builds single-platform container image (linux/amd64 only)
-# 4. Tags with SHA and -dev suffix (e.g., abc1234-dev)
+# 4. Tags with version, branch name, and SHA (e.g., 0.5.9-dev-feat-awesome-abc1234)
 # 5. Pushes to ghcr.io for development testing
 #
 # Security controls:
@@ -32,15 +32,15 @@
 #   Production                    | Development
 #   ----------------------------- | ---------------------------
 #   Multi-platform (amd64, arm64) | Single platform (amd64)
-#   Version tags (v1.0.0, latest) | SHA tags (abc1234-dev)
+#   Version tags (v1.0.0, latest) | Dev tags (0.5.9-dev-feat-name-abc1234)
 #   SLSA attestation              | No attestation
 #   SBOM generation               | No SBOM
 #   Vulnerability scanning        | No scanning
-#   Multiple tag strategies       | Simple SHA-based only
+#   Multiple tag strategies       | Branch-aware dev tags
 #   ~12-15 min build time        | ~3-4 min build time
 #
 # Outputs:
-#   image: Full image name (ghcr.io/org/repo:sha-dev)
+#   image: Full image name (ghcr.io/org/repo:0.5.9-dev-feat-name-abc1234)
 #   digest: Image digest for verification
 ---
 name: Build Dev Container Image to GHCR
@@ -151,10 +151,15 @@ jobs:
             BASE_VERSION="${LATEST_TAG#v}"
           fi
           
-          # Dev tag with version and sha
+          # Get branch name and sanitize for Docker tag
+          # Remove refs/heads/ prefix, replace slashes and special chars with dashes
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's|[^a-zA-Z0-9._-]|-|g' | sed 's|^-*||; s|-*$||')
+          
+          # Dev tag with version, branch, and sha
           SHORT_SHA=${GITHUB_SHA:0:7}
           IMAGE_NAME="${{ inputs.registry }}/${{ github.repository }}"
-          DEV_TAG="${BASE_VERSION}-dev-${SHORT_SHA}"
+          DEV_TAG="${BASE_VERSION}-dev-${SANITIZED_BRANCH}-${SHORT_SHA}"
           
           echo "tags=${IMAGE_NAME}:${DEV_TAG}" >> $GITHUB_OUTPUT
           echo "image=${IMAGE_NAME}:${DEV_TAG}" >> $GITHUB_OUTPUT

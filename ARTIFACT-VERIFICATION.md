@@ -44,6 +44,7 @@ PROJECT="your-project-name"
 VERSION="v1.0.0"
 
 # Verify image signature (keyless signing via GitHub OIDC)
+# Note: Containers are signed via SLSA generator workflow, so identity is from slsa-framework
 cosign verify \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --certificate-identity-regexp "^https://github.com/diggsweden/${PROJECT}" \
@@ -54,6 +55,7 @@ cosign verify \
 
 ```bash
 # Verify SLSA Level 3 provenance attestation
+# Note: SLSA attestations are created by slsa-framework/slsa-github-generator, not the repository itself
 cosign verify-attestation \
   --type slsaprovenance \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
