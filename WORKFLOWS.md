@@ -2,6 +2,7 @@
 
 ## Table of Contents
 - [Introduction for New Users](#introduction-for-new-users)
+- [Workflow Architecture](#workflow-architecture)
 - [Quick Start](#quick-start)
 - [Pull Request Workflow](#pull-request-workflow)
 - [Release Workflow](#release-workflow)
@@ -49,6 +50,148 @@ All components are configurable:
 - **Use individual components** - Build custom workflows using specific components
 - **Combine approaches** - Use specific builders with custom release processes
 - **Use nothing at all** - Write everything yourself (but then you need to implement security scanning, license compliance, SBOM generation, signing, etc. to meet organizational requirements)
+
+---
+
+## Workflow Architecture
+
+### Pull Request Workflow Architecture
+
+```mermaid
+graph TD
+    A[Pull Request Created/Updated] --> B[pullrequest-orchestrator.yml]
+    B --> C[commit-lint]
+    B --> D[license-lint]
+    B --> E[dependency-review]
+    B --> F[megalint]
+    B --> G[publiccode-lint]
+    C --> H[lint-status]
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+    H --> I[Project test.yml]
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style H fill:#e8f5e9
+    style I fill:#f3e5f5
+```
+
+### Release Workflow Architecture
+
+```mermaid
+graph TD
+    A[Tag Push: v*.*.* ] --> B[release-orchestrator.yml]
+    B --> C[release-prerequisites.yml]
+    C --> D[version-bump.yml]
+    D --> E1[generate-full-changelog.yml]
+    D --> E2[generate-minimal-changelog.yml]
+    E1 --> F{Project Type?}
+    E2 --> F
+    
+    F -->|Maven App| G1[publish-maven-app-github.yml]
+    F -->|Maven Lib| G2[publish-maven-lib-central.yml]
+    F -->|NPM App| G3[publish-npm-app-github.yml]
+    
+    G1 --> H{Container Enabled?}
+    G2 --> H
+    G3 --> H
+    
+    H -->|Yes| I[build-container-ghcr.yml]
+    H -->|No| J{Release Publisher?}
+    I --> J
+    
+    J -->|JReleaser| K1[release-github.yml with JReleaser]
+    J -->|GitHub CLI| K2[release-github.yml with gh CLI]
+    
+    K1 --> L[release-summary]
+    K2 --> L
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#ffebee
+    style D fill:#f3e5f5
+    style I fill:#e8f5e9
+    style L fill:#e0f2f1
+```
+
+### Component Interaction Flow
+
+```mermaid
+graph LR
+    A[Project Workflow] --> B[Orchestrator]
+    B --> C[Validator]
+    B --> D[Publisher]
+    B --> E[Builder]
+    B --> F[Release Creator]
+    
+    C -.validates.-> G[(Secrets)]
+    C -.checks.-> H[(Version)]
+    
+    D -.uploads.-> I[(Maven Central)]
+    D -.uploads.-> J[(GitHub Packages)]
+    D -.uploads.-> K[(NPM Registry)]
+    
+    E -.builds.-> L[(Container Image)]
+    E -.generates.-> M[(SBOM)]
+    E -.scans.-> N[(Vulnerabilities)]
+    
+    F -.creates.-> O[(GitHub Release)]
+    F -.signs.-> P[(GPG Signatures)]
+    
+    style B fill:#fff4e1
+    style C fill:#ffebee
+    style D fill:#e8f5e9
+    style E fill:#e1f5ff
+    style F fill:#f3e5f5
+```
+
+### Workflow Execution Patterns
+
+#### Pattern 1: Maven Library (cose-lib)
+```mermaid
+graph LR
+    A[Tag Push] --> B[Prerequisites]
+    B --> C[Version Bump]
+    C --> D[Publish to Maven Central]
+    D --> E[JReleaser in publish step]
+    E --> F[GitHub Release Created]
+    
+    style A fill:#e1f5ff
+    style D fill:#e8f5e9
+    style E fill:#fff4e1
+    style F fill:#f3e5f5
+```
+
+#### Pattern 2: Maven/NPM Application with Container (issuer-poc, linter)
+```mermaid
+graph LR
+    A[Tag Push] --> B[Prerequisites]
+    B --> C[Version Bump]
+    C --> D[Publish Artifacts]
+    D --> E[Build Container]
+    E --> F[Create GitHub Release]
+    F --> G[JReleaser or GitHub CLI]
+    
+    style A fill:#e1f5ff
+    style D fill:#e8f5e9
+    style E fill:#e1f5ff
+    style F fill:#f3e5f5
+    style G fill:#fff4e1
+```
+
+### Key Differences Explained
+
+| Aspect | Library Pattern | Application Pattern |
+|--------|----------------|---------------------|
+| **Artifacts** | JAR, Sources, Javadoc | JAR/NPM + Container Image |
+| **Destination** | Maven Central | GitHub Packages + ghcr.io |
+| **JReleaser Timing** | During Maven publish | After all artifacts ready |
+| **Container Build** | Not needed | Required |
+| **Release Step** | Integrated in publish | Separate final step |
+
+---
 
 ### Getting Started
 
@@ -196,6 +339,144 @@ Accepted tag patterns:
 - `v1.0.0-SNAPSHOT` - Snapshot build (uppercase)
 
 Note: Tags ending with `-dev` are excluded from release workflows to prevent accidental dev releases.
+
+---
+
+## JReleaser Integration Patterns
+
+JReleaser is used differently depending on your project type. Understanding when and how JReleaser runs is critical for correct configuration.
+
+### Pattern 1: Library Publishing (Maven Central)
+
+**Used by:** Maven libraries published to Maven Central (e.g., `cose-lib`)
+
+**How it works:**
+```yaml
+# release-workflow.yml
+with:
+  artifactPublisher: maven-lib-mavencentral
+  artifact.jreleaserenabled: true
+  # No releasePublisher configured
+```
+
+**JReleaser runs DURING the Maven publish step:**
+```
+1. Version bump
+2. Publish to Maven Central
+   └─ mvn deploy (publishes to Central)
+   └─ mvn jreleaser:full-release (creates GitHub release)
+3. Done (no separate release step)
+```
+
+**Why this pattern:**
+- Libraries typically only publish JARs (no containers)
+- JReleaser is configured as a Maven plugin in `pom.xml`
+- GitHub release creation happens as part of publishing
+- Single-step deployment to both Central and GitHub
+
+**Configuration required:**
+```xml
+<!-- In pom.xml -->
+<plugin>
+  <groupId>org.jreleaser</groupId>
+  <artifactId>jreleaser-maven-plugin</artifactId>
+  <version>${jreleaser-maven-plugin.version}</version>
+  <configuration>
+    <configFile>${project.basedir}/jreleaser.yml</configFile>
+  </configuration>
+</plugin>
+```
+
+**Example repositories:**
+- `cose-lib` - See `.github/workflows/release-workflow.yml`
+
+---
+
+### Pattern 2: Application Publishing (with Container Images)
+
+**Used by:** Applications that build both artifacts AND containers (e.g., `eudiw-wallet-issuer-poc`, `rest-api-profil-lint-processor`)
+
+**How it works:**
+```yaml
+# release-workflow.yml
+with:
+  artifactPublisher: maven-app-github  # or npm-app-github
+  containerBuilder: containerimage-ghcr
+  releasePublisher: jreleaser  # or github-cli
+```
+
+**JReleaser runs AFTER all artifacts are ready:**
+```
+1. Version bump
+2. Publish artifacts (JAR or NPM)
+3. Build container image
+4. Create GitHub release
+   └─ JReleaser or GitHub CLI creates release
+   └─ Attaches JAR + container reference + SBOM
+```
+
+**Why this pattern:**
+- Applications need both artifacts AND containers
+- Container must be built before creating release
+- Release notes need to reference container image
+- GitHub release is created after ALL artifacts ready
+
+**When to use JReleaser vs GitHub CLI:**
+- **JReleaser:** Maven projects with complex artifact sets
+- **GitHub CLI:** NPM projects or simpler releases
+
+**Example repositories:**
+- `eudiw-wallet-issuer-poc` - Maven app with JReleaser
+- `rest-api-profil-lint-processor` - NPM app with GitHub CLI
+
+---
+
+### Decision Tree: Which Pattern Should I Use?
+
+```
+Is this a library or application?
+├─ Library
+│  └─ Publishing to Maven Central?
+│     ├─ Yes → Use Pattern 1 (JReleaser in publish step)
+│     └─ No → Use Pattern 2 (separate release step)
+│
+└─ Application
+   └─ Building container images?
+      ├─ Yes → Use Pattern 2 (JReleaser after container)
+      └─ No → Either pattern works (Pattern 2 recommended)
+```
+
+### Key Differences
+
+| Aspect | Pattern 1 (Library) | Pattern 2 (Application) |
+|--------|-------------------|------------------------|
+| **When JReleaser runs** | During `mvn deploy` | After container build |
+| **JReleaser location** | Maven plugin | Workflow step |
+| **Artifacts included** | JAR, sources, javadoc | JAR/NPM + container + SBOM |
+| **Container builds** | No | Yes (before release) |
+| **Typical destination** | Maven Central + GitHub | GitHub Packages + ghcr.io |
+| **Release step** | Integrated | Separate final step |
+
+### Common Mistakes
+
+**❌ Wrong: Using Pattern 1 for applications with containers**
+```yaml
+# This doesn't work if you build containers!
+artifactPublisher: maven-app-github
+artifact.jreleaserenabled: true  # ← JReleaser runs too early
+containerBuilder: containerimage-ghcr  # ← Container built AFTER release created
+```
+
+**Problem:** GitHub release is created before container exists, so container can't be referenced in release notes.
+
+**✅ Correct: Using Pattern 2 for applications with containers**
+```yaml
+artifactPublisher: maven-app-github
+containerBuilder: containerimage-ghcr
+releasePublisher: jreleaser  # ← JReleaser runs AFTER container ready
+```
+
+---
 
 ## Quick Start
 

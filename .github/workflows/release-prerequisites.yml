@@ -102,14 +102,19 @@ jobs:
   validate:
     name: Validate Prerequisites
     runs-on: ubuntu-latest
+    # ============================================================================
+    # This job validates all prerequisites required for a successful release:
+    #   1. Tag Validation - Format, signature, uniqueness, commit availability
+    #   2. Authorization - User permissions for non-SNAPSHOT releases
+    #   3. Secrets & Credentials - GPG keys, tokens, publishing credentials
+    #   4. Summary Generation - Comprehensive validation report
+    # ============================================================================
     steps:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           fetch-tags: true
-          # Don't use ref parameter - let it checkout the default ref
-          # This ensures we get proper tag objects when triggered by tags
       
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
@@ -127,148 +132,13 @@ jobs:
       
       - name: Validate Tag Format
         if: ${{ github.ref_type == 'tag' }}
-        run: |
-          echo "## Validating Tag Format"
-          TAG_NAME="${{ github.ref_name }}"
-          
-          # Check if tag follows semantic versioning pattern
-          # Must start with 'v' followed by X.Y.Z where X, Y, Z are numbers
-          # Can optionally have pre-release suffix (e.g., -alpha.1, -beta.2, -rc.1, -dev)
-          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.\-]+)?$ ]]; then
-            echo "::error::❌ Invalid tag format: '$TAG_NAME'"
-            echo ""
-            echo "Tags must follow semantic versioning: vMAJOR.MINOR.PATCH[-PRERELEASE]"
-            echo "Valid: v1.0.0, v2.3.4-beta.1, v1.0.0-rc.2, v3.0.0-alpha, v1.0.0-dev"
-            echo "Learn more: https://semver.org"
-            exit 1
-          fi
-          
-          # Extract version components
-          VERSION_PATTERN="^v([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?$"
-          if [[ "$TAG_NAME" =~ $VERSION_PATTERN ]]; then
-            MAJOR="${BASH_REMATCH[1]}"
-            MINOR="${BASH_REMATCH[2]}"
-            PATCH="${BASH_REMATCH[3]}"
-            PRERELEASE="${BASH_REMATCH[5]}"
-            
-            echo "✅ Valid semantic version tag"
-            echo "   Version: $MAJOR.$MINOR.$PATCH"
-            if [[ -n "$PRERELEASE" ]]; then
-              echo "   Pre-release: $PRERELEASE"
-              
-              # Validate pre-release format matches our allowed patterns
-              if [[ "$PRERELEASE" =~ ^(alpha|beta|rc|snapshot|SNAPSHOT|dev)(\.[0-9]+)?$ ]]; then
-                echo "   ✅ Pre-release identifier follows convention"
-              else
-                echo "   ℹ️ Non-standard pre-release identifier: $PRERELEASE"
-                echo "      Standard identifiers: alpha, beta, rc, snapshot, SNAPSHOT, dev"
-                echo "      (Release will proceed - this is informational only)"
-              fi
-            else
-              echo "   Type: Stable release"
-            fi
-          fi
-          
-          echo ""
-          echo "### Tag Format Summary:"
-          echo "✅ Tag follows semantic versioning (vX.Y.Z)"
-          echo "✅ Tag format validation passed"
+        run: .github/scripts/validate-tag-format.sh "${{ github.ref_name }}"
       
       - name: Validate Tag Signature
         if: ${{ github.ref_type == 'tag' }}
-        run: |
-          echo "## Validating Release Tag Security"
-          TAG_NAME="${{ github.ref_name }}"
-          
-          # Check if this is actually a tag (not a branch)
-          if [[ "${{ github.ref_type }}" != "tag" ]]; then
-            echo "::warning::Not running from a tag, skipping tag validation"
-            exit 0
-          fi
-          
-          # Check if tag is annotated by looking at what it points to
-          # For annotated tags, the tag object exists
-          # For lightweight tags, the tag points directly to a commit
-          
-          # Check if tag is annotated using git cat-file
-          # For annotated tags: git cat-file -t <tag> returns "tag"
-          # For lightweight tags: git cat-file -t <tag> returns "commit"
-          TAG_TYPE=$(git cat-file -t "$TAG_NAME" 2>/dev/null || echo "unknown")
-          
-          echo "Tag '$TAG_NAME' object type: $TAG_TYPE"
-          
-          if [[ "$TAG_TYPE" != "tag" ]]; then
-            echo "❌ Tag '$TAG_NAME' is a lightweight tag (not annotated)"
-            echo "📝 Requirement: Use annotated tags for releases"
-            echo "💡 Example: git tag -a v1.0.0 -m 'Release v1.0.0'"
-            echo "📚 https://github.com/${{ github.repository }}/blob/main/.github/WORKFLOWS.md#tag-requirements"
-            exit 1
-          fi
-          
-          echo "✅ Tag '$TAG_NAME' is annotated"
-          
-          # Check if tag has any signature (GPG or SSH)
-          echo "Checking tag signature..."
-          TAG_CONTENT=$(git cat-file tag "$TAG_NAME")
-          
-          HAS_GPG_SIG=false
-          HAS_SSH_SIG=false
-          
-          if echo "$TAG_CONTENT" | grep -q "BEGIN PGP SIGNATURE"; then
-            HAS_GPG_SIG=true
-            echo "✅ Tag has a GPG signature"
-          fi
-          
-          if echo "$TAG_CONTENT" | grep -q "BEGIN SSH SIGNATURE"; then
-            HAS_SSH_SIG=true
-            echo "✅ Tag has an SSH signature"
-          fi
-          
-          if [[ "$HAS_GPG_SIG" == "false" ]] && [[ "$HAS_SSH_SIG" == "false" ]]; then
-            echo "::error::❌ Tag '$TAG_NAME' is not signed"
-            echo ""
-            echo "Release tags must be cryptographically signed."
-            echo "Create with: git tag -s v1.0.0 -m \"Release v1.0.0\""
-            echo "Learn more: https://docs.github.com/en/authentication/managing-commit-signature-verification"
-            exit 1
-          fi
-          
-          # Try to verify the signature (might fail if we don't have the key)
-          VERIFICATION_OUTPUT=""
-          if [[ "$HAS_GPG_SIG" == "true" ]]; then
-            # Import GPG keys for verification (if available)
-            if [[ -n "${{ secrets.OSPO_BOT_GPG_PUB }}" ]]; then
-              echo "${{ secrets.OSPO_BOT_GPG_PUB }}" | gpg --import 2>/dev/null || true
-            fi
-            
-            if git tag -v "$TAG_NAME" 2>/dev/null; then
-              echo "✅ GPG signature verification successful"
-              SIGNER=$(git tag -v "$TAG_NAME" 2>&1 | grep "Good signature from" | sed 's/.*Good signature from "\(.*\)".*/\1/' || echo "Unknown")
-              echo "   Signed by: $SIGNER"
-            else
-              echo "ℹ️ GPG signature present (verification requires signer's public key)"
-            fi
-          fi
-          
-          if [[ "$HAS_SSH_SIG" == "true" ]]; then
-            echo "ℹ️ SSH signature present"
-            echo "   GitHub will show 'Verified' if the SSH key is uploaded to the signer's account"
-          fi
-          
-          # Display tag information
-          echo ""
-          echo "### Tag Security Summary:"
-          echo "✅ Tag is annotated (not lightweight)"
-          echo "✅ Tag is cryptographically signed"
-          echo "✅ Release security requirements met"
-          echo ""
-          echo "### Tag Information:"
-          echo "Tagged commit: $(git rev-list -n 1 $TAG_NAME)"
-          echo "Tagger: $(git for-each-ref refs/tags/$TAG_NAME --format='%(taggername) <%(taggeremail)>')"
-          echo "Tag date: $(git for-each-ref refs/tags/$TAG_NAME --format='%(taggerdate:iso8601)')"
-          echo ""
-          echo "Tag message:"
-          git tag -l -n999 "$TAG_NAME" | sed 's/^[^ ]* */  /'
+        env:
+          OSPO_BOT_GPG_PUB: ${{ secrets.OSPO_BOT_GPG_PUB }}
+        run: .github/scripts/validate-tag-signature.sh "${{ github.ref_name }}" "${{ github.repository }}" "$OSPO_BOT_GPG_PUB"
       
       - name: Validate Tag Uniqueness
         if: ${{ github.ref_type == 'tag' }}
@@ -301,70 +171,12 @@ jobs:
       
       - name: Validate Tag Commit Availability
         if: ${{ github.ref_type == 'tag' }}
-        run: |
-          echo "## Validating Tag Commit is Available on Branch"
-          TAG_NAME="${{ github.ref_name }}"
-          BRANCH="${{ inputs.branch }}"
-          
-          # Get the commit the tag points to
-          TAG_COMMIT=$(git rev-parse "$TAG_NAME^{commit}")
-          echo "Tag '$TAG_NAME' points to commit: $TAG_COMMIT"
-          
-          # Get branch HEAD
-          BRANCH_HEAD=$(git rev-parse "origin/$BRANCH")
-          echo "Branch '$BRANCH' HEAD: $BRANCH_HEAD"
-          
-          # Check if tag commit exists in branch history
-          if ! git merge-base --is-ancestor "$TAG_COMMIT" "origin/$BRANCH" 2>/dev/null; then
-            # Check if tag is ahead of branch
-            if git merge-base --is-ancestor "$BRANCH_HEAD" "$TAG_COMMIT" 2>/dev/null; then
-              echo "::error::❌ Tag commit is AHEAD of branch HEAD"
-              echo ""
-              echo "Tag '$TAG_NAME' points to: $TAG_COMMIT"
-              echo "Branch '$BRANCH' is at: $BRANCH_HEAD"
-              echo ""
-              echo "This means the commits for this tag were not pushed to '$BRANCH' yet."
-              echo ""
-              echo "To fix:"
-              echo "  1. Push your commits first: git push origin $BRANCH"
-              echo "  2. Then push the tag: git push origin $TAG_NAME"
-              echo ""
-              echo "⚠️  The workflow will fail because:"
-              echo "   - Version-bump checks out branch '$BRANCH' at $BRANCH_HEAD"
-              echo "   - Changelog generation won't see tag '$TAG_NAME'"
-              echo "   - git-describe will find an older tag instead"
-              echo ""
-              exit 1
-            else
-              echo "::error::❌ Tag commit is not in the history of branch '$BRANCH'"
-              echo ""
-              echo "Tag '$TAG_NAME' points to commit $TAG_COMMIT"
-              echo "This commit is NOT an ancestor of origin/$BRANCH"
-              echo ""
-              echo "This means either:"
-              echo "  1. The tag is on a different branch"
-              echo "  2. The tag was created from a stale local branch"
-              echo "  3. The branches have diverged"
-              echo ""
-              echo "To fix:"
-              echo "  1. Verify: git log --oneline --graph --all"
-              echo "  2. Ensure tag is on correct branch"
-              echo "  3. Delete and recreate tag: git tag -d $TAG_NAME && git tag -s $TAG_NAME"
-              echo ""
-              exit 1
-            fi
-          fi
-          
-          echo "✅ Tag commit $TAG_COMMIT is in branch '$BRANCH' history"
-          
-          # Check position relative to branch HEAD
-          if [ "$TAG_COMMIT" = "$BRANCH_HEAD" ]; then
-            echo "✅ Tag points to branch HEAD (ideal)"
-          else
-            echo "ℹ️  Tag commit is an ancestor of branch HEAD"
-            echo "   This is normal for existing releases"
-          fi
+        run: .github/scripts/validate-tag-commit.sh "${{ github.ref_name }}" "${{ inputs.branch }}"
       
+      # ============================================================================
+      # SECTION 2: Authorization Validation
+      # Checks if user is authorized for non-SNAPSHOT releases
+      # ============================================================================
       - name: Check Release Authorization
         if: ${{ inputs.checkAuthorization }}
         run: |
@@ -400,6 +212,10 @@ jobs:
             exit 1
           fi
       
+      # ============================================================================
+      # SECTION 3: Secrets and Credentials Validation
+      # Validates GPG keys, GitHub tokens, and publishing credentials
+      # ============================================================================
       - name: Validate GPG Configuration
         if: ${{ inputs.signArtifacts }}
         id: gpg-test
@@ -536,6 +352,10 @@ jobs:
           
           echo "✅ NPM token configured"
       
+      # ============================================================================
+      # SECTION 4: Summary Generation
+      # Creates comprehensive validation report
+      # ============================================================================
       - name: Generate Validation Summary
         if: always()
         run: |

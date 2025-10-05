@@ -206,6 +206,10 @@ on:
         type: string
         default: 'CHANGELOG.md pom.xml'
 
+concurrency:
+  group: release-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false  # Queue releases, don't cancel partial releases
+
 permissions:
   contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
 

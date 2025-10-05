@@ -208,6 +208,18 @@ jobs:
           name: release-changelog
           path: ${{ inputs.workingDirectory }}
 
+      - name: Verify Release Changelog
+        if: inputs.jreleaserEnabled
+        working-directory: ${{ inputs.workingDirectory }}
+        run: |
+          if [ ! -f "ReleasenotesTmp" ]; then
+            echo "::warning::Release changelog not found"
+            echo "JReleaser will use default changelog generation"
+            echo "This may result in less detailed release notes"
+          else
+            echo "✅ Release changelog found ($(wc -l < ReleasenotesTmp) lines)"
+          fi
+
       - name: Run JReleaser
         if: inputs.jreleaserEnabled
         working-directory: ${{ inputs.workingDirectory }}

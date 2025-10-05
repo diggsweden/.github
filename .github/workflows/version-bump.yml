@@ -232,6 +232,16 @@
               name: full-changelog
               path: ${{ inputs.workingDirectory }}
 
+          - name: Verify Full Changelog
+            working-directory: ${{ inputs.workingDirectory }}
+            run: |
+              if [ ! -f "CHANGELOG.md" ]; then
+                echo "::error::Full changelog (CHANGELOG.md) not found"
+                echo "This file is required for the version bump commit"
+                exit 1
+              fi
+              echo "✅ Full changelog found ($(wc -l < CHANGELOG.md) lines)"
+
           - name: Download Minimal Changelog  
             uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
             with:

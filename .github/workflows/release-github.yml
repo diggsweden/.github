@@ -189,6 +189,18 @@ jobs:
           name: maven-artifacts
           path: target/
 
+      - name: Verify Maven artifacts for JReleaser
+        if: ${{ inputs.useJReleaser }}
+        run: |
+          if [ ! -d "target" ] || [ -z "$(ls -A target/*.jar 2>/dev/null)" ]; then
+            echo "::error::No Maven artifacts found for JReleaser"
+            echo "JReleaser requires artifacts in target/ directory"
+            echo "This usually means the publish-maven step did not upload artifacts"
+            exit 1
+          fi
+          echo "✅ Maven artifacts available for JReleaser:"
+          ls -lh target/*.jar
+
       - name: Run JReleaser
         if: ${{ inputs.useJReleaser }}
         env:
