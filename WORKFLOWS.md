@@ -50,7 +50,7 @@ All components are configurable:
 - **Disable specific features** - Skip linters, disable signing, remove SBOM generation
 - **Use individual components** - Build custom workflows using specific components
 - **Combine approaches** - Use specific builders with custom release processes
-- **Use nothing at all** - Write everything yourself (but then you need to implement security scanning, license compliance, SBOM generation, signing, etc. to meet organizational requirements)
+- **Custom implementation** - Requires: security scanning, license compliance, SBOM generation, artifact signing, SLSA attestation
 
 ---
 
@@ -196,7 +196,7 @@ graph LR
 
 ### Getting Started
 
-Most projects just need two files:
+Most projects require two files:
 
 1. **`.github/workflows/pullrequest-workflow.yml`** - For PR checks
 2. **`.github/workflows/release-workflow.yml`** - For releases
@@ -237,15 +237,15 @@ Some features require secrets to be configured:
 - **Maven Central** needs Sonatype credentials  
 - **Container registries** use GITHUB_TOKEN (automatic)
 
-**Important for DiggSweden projects:** All required secrets are configured at the DiggSweden organization level. You don't need to create any secrets yourself - just request access from your DiggSweden GitHub organization administrator. They will enable the necessary secrets for your repository.
+**Important for DiggSweden projects:** All required secrets are configured at the DiggSweden organization level. Request access from DiggSweden GitHub administrators to enable secrets for the repository.
 
 Not using these features? No need to request the secrets.
 
 ### How It Works
 
-1. **You push code** → PR workflow runs checks
-2. **You create a tag** → Release workflow builds and publishes everything
-3. **You get feedback** → Clear errors if something's wrong
+1. **Push code** → PR workflow runs checks
+2. **Create version tag** → Release workflow builds and publishes
+3. **Workflow failures** → Detailed error messages
 
 The workflows handle all the complexity:
 - Multi-platform container builds
@@ -306,11 +306,11 @@ jobs:
 
 ### Next Steps
 
-1. **Choose your project type** - Maven or NPM?
-2. **Copy a basic example** - See Quick Start below
-3. **Add secrets if needed** - See Environment Variables Matrix
-4. **Customize as needed** - Enable/disable features
-5. **Test with a pre-release** - Try `v1.0.0-test.1` first
+1. **Select project type** - Maven or NPM
+2. **Copy an example** - See Quick Start
+3. **Configure secrets** - See Environment Variables Matrix
+4. **Customize settings** - Enable/disable features
+5. **Test with pre-release** - Use `v1.0.0-test.1` format
 
 ### Tag Requirements
 
@@ -476,6 +476,51 @@ artifactPublisher: maven-app-github
 containerBuilder: containerimage-ghcr
 releasePublisher: jreleaser  # ← JReleaser runs AFTER container ready
 ```
+
+---
+
+## ⚠️ Important: Permissions in Reusable Workflows
+
+### GitHub Limitation
+
+Due to a GitHub Actions limitation, you **MUST explicitly declare permissions** in your workflow file when calling reusable workflows. The orchestrator cannot automatically grant permissions to its nested workflow calls.
+
+**Why this happens:** GitHub doesn't support dynamic permission inheritance across nested reusable workflow calls. Since our orchestrators call multiple sub-workflows (version-bump, publish, container-build, release), each requiring different permissions, there's no way to make this automatic.
+
+**Solution:** Copy the exact permissions shown in the examples below. These permissions are the minimum required for the orchestrator to function correctly.
+
+### Required Permissions by Workflow Type
+
+#### Pull Request Workflows
+```yaml
+permissions:
+  contents: read         # Clone and read repository code
+  packages: read         # Download packages from GitHub Packages
+  security-events: write # Upload security scan results to GitHub
+```
+
+#### Release Workflows
+```yaml
+permissions:
+  contents: write         # Create GitHub releases and tags
+  packages: write         # Publish artifacts and containers to GitHub
+  id-token: write        # Generate OIDC token for attestations
+  actions: read          # Read workflow for SLSA provenance
+  security-events: write # Upload container scan results
+  attestations: write    # Attach SBOM to container images
+```
+
+#### Dev Release Workflows
+```yaml
+permissions:
+  contents: write   # Version bump commits
+  packages: write   # Push dev containers to ghcr.io
+```
+
+**References:**
+- [GitHub Docs: Reusable Workflows Permissions](https://docs.github.com/en/actions/using-workflows/reusing-workflows#supported-keywords-for-jobs-that-call-a-reusable-workflow)
+- [GitHub Community Discussion #40974](https://github.com/orgs/community/discussions/40974)
+- [GitHub Community Discussion #26823](https://github.com/orgs/community/discussions/26823)
 
 ---
 
@@ -799,7 +844,7 @@ jobs:
       
       # === CONTAINER SETTINGS (showing defaults) ===
       container.registry: "ghcr.io"             # Default: "ghcr.io". Container registry
-      container.platforms: "linux/amd64"        # Default: "linux/amd64". Target platforms
+      container.platforms: "linux/amd64,linux/arm64"  # Default: "linux/amd64,linux/arm64". Target platforms
       container.enableslsa: true                # Default: true. SLSA provenance attestation
       container.enablesbom: true                # Default: true. Generate SBOM
       container.enablescan: true                # Default: true. Trivy vulnerability scan
@@ -822,9 +867,10 @@ jobs:
       
       # === ADVANCED SETTINGS (showing defaults) ===
       workingDirectory: "."                     # Default: ".". Working directory
-      file_pattern: "CHANGELOG.md pom.xml"      # Default: "CHANGELOG.md pom.xml". Files to commit in version bump
+      # file_pattern: Auto-detected based on projectType (Maven: "CHANGELOG.md pom.xml", NPM: "CHANGELOG.md package.json package-lock.json")
       
       # Note: The following features are automatically handled by the workflows:
+      # - File pattern detection based on project type (Maven, NPM, Gradle, Python)
       # - SHA-256 checksums in checksums.sha256 (generated by JReleaser or GitHub CLI)
       # - GPG signing (when OSPO_BOT_GPG_* secrets are configured)
       # - SLSA/SBOM catalogs (controlled by container.enableslsa and release.generatesbom)
@@ -1198,7 +1244,7 @@ jobs:
       containerBuilder: containerimage-ghcr # Docker image with Node.js app
       releasePublisher: github-cli          # GitHub CLI for releases
       artifact.nodeversion: "22"            # Latest Node.js LTS
-      file_pattern: "CHANGELOG.md package.json package-lock.json"  # Files to commit in version bump
+      # file_pattern auto-detected for NPM: "CHANGELOG.md package.json package-lock.json"
 ```
 
 ### Maven Library (No Container)

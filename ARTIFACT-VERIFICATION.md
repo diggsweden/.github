@@ -2,29 +2,18 @@
 
 Documentation for verifying the authenticity and integrity of artifacts produced by DiggSweden workflows.
 
-## What Can Be Verified
+## Verification Methods
 
-| Artifact Type | Verification Methods | What It Proves |
-|--------------|---------------------|----------------|
-| **Container Images** | Cosign signatures, SLSA provenance, SBOM attestations | Built by official CI, unmodified, with traceable dependencies |
-| **Maven JARs** | GPG signatures, checksums | Signed, unchanged since publication |
-| **NPM Packages** | NPM provenance, signatures | Package integrity and build authenticity |
-| **Release Assets** | GPG signatures, SHA256 checksums | Authentic release files from official builds |
-| **Git Tags** | GPG/SSH signatures | Release tags created by authorized developers |
-| **Git Commits** | GPG/SSH signatures | Commits made by verified developers |
+| Artifact Type | Verification Methods | Security Level | What It Proves |
+|--------------|---------------------|----------------|----------------|
+| **Container Images** | Cosign signatures, SLSA provenance, SBOM attestations | High/Maximum | Built by official CI, unmodified, with traceable dependencies |
+| **Maven JARs** | GPG signatures, checksums | High | Signed, unchanged since publication |
+| **NPM Packages** | NPM provenance, signatures | High | Package integrity and build authenticity |
+| **Release Assets** | GPG signatures, SHA256 checksums | High | Authentic release files from official builds |
+| **Git Tags** | GPG/SSH signatures | High | Release tags created by authorized developers |
+| **Git Commits** | GPG/SSH signatures | High | Commits made by verified developers |
 
 All verification methods use industry-standard cryptographic signatures and attestations.
-
-## Security Levels
-
-| Method | Security Level | What It Proves | When to Use |
-|--------|----------------|----------------|-------------|
-| **Checksums** | Basic | File integrity | Quick verification |
-| **GPG Signatures** | High | Artifact authenticity | Release verification |
-| **Cosign Signatures** | High | Container authenticity | Container deployment |
-| **SLSA Provenance** | Maximum | Supply chain integrity | High security environments |
-| **SBOM** | Compliance | Dependency transparency | Security audits |
-| **Commit Signatures** | High | Developer authenticity | Code review & audits |
 
 ## Purpose
 
@@ -34,17 +23,17 @@ Artifact verification prevents tampering and validates authenticity in CI/CD pip
 
 ### 1. Container Image Verification
 
-**Verification scope**: Container authenticity and DiggSweden CI build origin.
+Verifies container authenticity and DiggSweden CI build origin.
 
 #### Verify Container Signature
 
 ```bash
-# Set your project and version
+# Set project and version
 PROJECT="your-project-name"
 VERSION="v1.0.0"
 
 # Verify image signature (keyless signing via GitHub OIDC)
-# Note: Containers are signed via SLSA generator workflow, so identity is from slsa-framework
+# Containers are signed via SLSA generator workflow, so identity is from slsa-framework
 cosign verify \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --certificate-identity-regexp "^https://github.com/diggsweden/${PROJECT}" \
@@ -55,7 +44,7 @@ cosign verify \
 
 ```bash
 # Verify SLSA Level 3 provenance attestation
-# Note: SLSA attestations are created by slsa-framework/slsa-github-generator, not the repository itself
+# SLSA attestations are created by slsa-framework/slsa-github-generator, not the repository itself
 cosign verify-attestation \
   --type slsaprovenance \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
@@ -88,12 +77,12 @@ cosign download attestation \
 
 ### 2. Maven Artifact Verification
 
-**Verification scope**: OSPO_BOT signature and artifact integrity.
+Verifies OSPO_BOT signature and artifact integrity.
 
 #### Verify GPG Signature
 
 ```bash
-# Import DiggSwedenBot public key (one-time setup)
+# Import DiggSwedenBot public key
 curl -sSfL https://github.com/diggsweden/.github/raw/main/pubkey/ospo.digg.pub.asc -o ospo.digg.pub.asc
 
 # Verify fingerprint before importing
@@ -103,11 +92,11 @@ gpg --show-keys ospo.digg.pub.asc
 gpg --import ospo.digg.pub.asc
 
 # Download artifact and signature from GitHub Packages
-curl -H "Authorization: token YOUR_GITHUB_TOKEN" \
+curl -H "Authorization: token GITHUB_TOKEN" \
   -L https://maven.pkg.github.com/diggsweden/${PROJECT}/${ARTIFACT}/${VERSION}/${ARTIFACT}-${VERSION}.jar \
   -o ${ARTIFACT}.jar
 
-curl -H "Authorization: token YOUR_GITHUB_TOKEN" \
+curl -H "Authorization: token GITHUB_TOKEN" \
   -L https://maven.pkg.github.com/diggsweden/${PROJECT}/${ARTIFACT}/${VERSION}/${ARTIFACT}-${VERSION}.jar.asc \
   -o ${ARTIFACT}.jar.asc
 
@@ -117,7 +106,7 @@ gpg --verify ${ARTIFACT}.jar.asc ${ARTIFACT}.jar
 
 ### 3. NPM Package Verification
 
-**Verification scope**: Package integrity and build provenance.
+Verifies package integrity and build provenance.
 
 ```bash
 # Verify NPM package provenance (npm 9.5+ required)
@@ -129,7 +118,7 @@ npm view @diggsweden/${PACKAGE} --json | jq '.attestations'
 
 ### 4. Release Artifact Verification
 
-**Verification scope**: Release artifact authenticity and signatures.
+Verifies release artifact authenticity and signatures.
 
 #### Download and Verify Release Assets
 
@@ -151,7 +140,7 @@ sha256sum -c checksums.sha256 --ignore-missing
 
 ### 5. SSH Key Setup for Git Verification
 
-**Requirement**: SSH signature verification requires configuring Git with signer public keys.
+SSH signature verification requires configuring Git with signer public keys.
 
 #### Configure SSH Signature Verification
 
@@ -178,7 +167,7 @@ echo "ospo@digg.se $(cat /tmp/diggsweden-bot.keys)" >> ~/.ssh/allowed_signers
 
 ### 6. Git Tag Verification
 
-**Verification scope**: Tag signatures and authenticity.
+Verifies tag signatures and authenticity.
 
 ```bash
 # Fetch tags
@@ -193,9 +182,7 @@ git verify-tag v1.0.0 --raw
 
 ### 7. Git Commit Verification
 
-**Verification scope**: Developer identity via GPG or SSH signatures.
-
-**Note**: SSH signature verification requires SSH key setup from section 5.
+Verifies developer identity via GPG or SSH signatures. SSH signature verification requires SSH key setup from section 5.
 
 ```bash
 # Verify a specific commit signature
@@ -231,7 +218,7 @@ done
 git log --format='%G? %h %s' origin/main..HEAD | grep -E '^[NBU]' && echo "Found unsigned commits!" && exit 1 || echo "All commits signed"
 ```
 
-## Using Podman/Docker for Verification
+### 8. Podman/Docker Verification
 
 Verify and pull images securely:
 
@@ -248,9 +235,9 @@ podman pull ghcr.io/diggsweden/${PROJECT}:${VERSION}
 skopeo inspect --raw ghcr.io/diggsweden/${PROJECT}:${VERSION}
 ```
 
-## Getting Public Keys from GitHub
+### 9. Getting Public Keys from GitHub
 
-GitHub provides easy access to users' public keys:
+GitHub provides access to users' public keys:
 
 - **GPG keys**: `https://github.com/<username>.gpg`
 - **SSH keys**: `https://github.com/<username>.keys`

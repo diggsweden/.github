@@ -103,9 +103,9 @@ on:
         default: "ghcr.io"
         type: string
       container.platforms:
-        description: "Target platforms (default: linux/amd64)"
+        description: "Target platforms (default: linux/amd64,linux/arm64)"
         required: false
-        default: "linux/amd64"
+        default: "linux/amd64,linux/arm64"
         type: string
       container.enableslsa:
         description: "Enable SLSA provenance (default: true)"
@@ -201,10 +201,10 @@ on:
         type: string
       
       file_pattern:
-        description: "Files to commit in version bump (default: CHANGELOG.md pom.xml). NPM projects should set to 'CHANGELOG.md package.json package-lock.json'"
+        description: "Files to commit in version bump (auto-detected based on projectType if not specified: Maven='CHANGELOG.md pom.xml', NPM='CHANGELOG.md package.json package-lock.json', Gradle='CHANGELOG.md build.gradle settings.gradle')"
         required: false
         type: string
-        default: 'CHANGELOG.md pom.xml'
+        default: ""
 
 concurrency:
   group: release-${{ github.repository }}-${{ github.ref }}
@@ -214,9 +214,124 @@ permissions:
   contents: read  # Best Security practice. Jobs only get read as base, and then permissions are added as needed
 
 jobs:
-  # Step 0: Validate Prerequisites
+  # Step 0a: Setup defaults based on project type
+  setup-defaults:
+    name: Setup Defaults
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      file_pattern: ${{ steps.set-defaults.outputs.file_pattern }}
+    steps:
+      - name: Set project type defaults
+        id: set-defaults
+        run: |
+          # Set file_pattern based on project type if not explicitly provided
+          if [ -n "${{ inputs.file_pattern }}" ]; then
+            # User provided explicit value, use it
+            echo "file_pattern=${{ inputs.file_pattern }}" >> $GITHUB_OUTPUT
+          else
+            # Auto-detect based on project type
+            case "${{ inputs.projectType }}" in
+              npm)
+                echo "file_pattern=CHANGELOG.md package.json package-lock.json" >> $GITHUB_OUTPUT
+                ;;
+              maven)
+                echo "file_pattern=CHANGELOG.md pom.xml" >> $GITHUB_OUTPUT
+                ;;
+              gradle)
+                echo "file_pattern=CHANGELOG.md build.gradle settings.gradle" >> $GITHUB_OUTPUT
+                ;;
+              python)
+                echo "file_pattern=CHANGELOG.md pyproject.toml" >> $GITHUB_OUTPUT
+                ;;
+              *)
+                # Fallback for unknown project types
+                echo "file_pattern=CHANGELOG.md" >> $GITHUB_OUTPUT
+                ;;
+            esac
+          fi
+          
+          echo "::notice::Using file_pattern: $(cat $GITHUB_OUTPUT | grep file_pattern | cut -d= -f2-)"
+
+  # Step 0b: Validate configuration
+  validate-config:
+    name: Validate Configuration
+    runs-on: ubuntu-latest
+    needs: [setup-defaults]
+    permissions:
+      contents: read
+    steps:
+      - name: Validate workflow inputs
+        run: |
+          EXIT_CODE=0
+          
+          echo "## Configuration Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check 1: NPM projects should have package.json in file_pattern
+          if [ "${{ inputs.projectType }}" = "npm" ]; then
+            FILE_PATTERN="${{ needs.setup-defaults.outputs.file_pattern }}"
+            if [[ ! "$FILE_PATTERN" =~ "package.json" ]]; then
+              echo "::error::NPM projects must include package.json in file_pattern"
+              echo "::error::Recommended: file_pattern: 'CHANGELOG.md package.json package-lock.json'"
+              echo "::notice::Current value: '$FILE_PATTERN'"
+              echo "❌ NPM file_pattern validation failed" >> $GITHUB_STEP_SUMMARY
+              EXIT_CODE=1
+            else
+              echo "✅ NPM file_pattern includes package.json" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # Check 2: Container builder without artifact publisher (warning only)
+          if [ -n "${{ inputs.containerBuilder }}" ] && [ -z "${{ inputs.artifactPublisher }}" ]; then
+            echo "::warning::Building container without publishing artifacts first"
+            echo "::notice::Container builds typically need artifacts from Maven/NPM build step"
+            echo "::notice::Consider adding artifactPublisher: maven-app-github or npm-app-github"
+            echo "⚠️ Building container without artifact publisher" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check 3: Maven Central publishing best practices
+          if [ "${{ inputs.artifactPublisher }}" = "maven-lib-mavencentral" ]; then
+            ISSUES=0
+            if [ "${{ inputs['artifact.jreleaserenabled'] }}" != "true" ]; then
+              echo "::warning::Maven Central publishing typically requires JReleaser"
+              echo "::notice::Set artifact.jreleaserenabled: true"
+              ISSUES=1
+            fi
+            if [ -z "${{ inputs['artifact.settingspath'] }}" ]; then
+              echo "::warning::Maven Central publishing typically needs custom settings.xml"
+              echo "::notice::Set artifact.settingspath: '.mvn/settings.xml'"
+              ISSUES=1
+            fi
+            if [ $ISSUES -eq 1 ]; then
+              echo "⚠️ Maven Central configuration may be incomplete" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ Maven Central configuration looks good" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # Check 4: Conflicting configurations
+          if [ "${{ inputs.artifactPublisher }}" = "maven-lib-mavencentral" ] && [ -n "${{ inputs.containerBuilder }}" ]; then
+            echo "::warning::Maven libraries typically don't need container images"
+            echo "::notice::Libraries are consumed as dependencies, not run as containers"
+            echo "⚠️ Unusual: Library with container builder" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **All validations passed**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Configuration validation failed**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          exit $EXIT_CODE
+
+  # Step 0c: Validate Prerequisites
   validate-prerequisites:
     name: Validate Prerequisites
+    needs: [setup-defaults, validate-config]
     secrets: inherit
     uses: ./.github/workflows/release-prerequisites.yml
     with:
@@ -230,7 +345,7 @@ jobs:
 
   # Step 1: Version Bump
   version-and-changelog:
-    needs: [validate-prerequisites]
+    needs: [setup-defaults, validate-prerequisites]
     name: Version Bump
     if: ${{ !inputs['changelog.skipversionbump'] && inputs.changelogCreator == 'git-cliff' }}
     permissions:
@@ -241,7 +356,7 @@ jobs:
     with:
       branch: ${{ inputs.branch }}
       projectType: ${{ inputs.projectType }}
-      file_pattern: ${{ inputs.file_pattern }}
+      file_pattern: ${{ needs.setup-defaults.outputs.file_pattern }}
       javaVersion: ${{ inputs['artifact.javaversion'] }}
       nodeVersion: ${{ inputs['artifact.nodeversion'] }}
       workingDirectory: ${{ inputs.workingDirectory }}
