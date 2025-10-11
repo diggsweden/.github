@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-      - uses: italia/publiccode-parser-action@360aac457ebcdee729754996a1816df662879cb0 # v1.3.3
+      - uses: italia/publiccode-parser-action@be6d3e9cb10c1cf556ce02831e2a6bc9cee6c2ee # v1.3.4
         with:
           publiccode: "publiccode.yml"
 
