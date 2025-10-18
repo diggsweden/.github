@@ -14,7 +14,7 @@
     ":semanticCommits",
     ":rebaseStalePrs",
     "mergeConfidence:all-badges",
-    ":semanticCommitType(chore)"
+    ":semanticCommitTypeAll(chore)"
   ],
   "semanticCommitScope": "deps",
   "commitMessageLowerCase": "auto",
