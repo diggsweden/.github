@@ -24,6 +24,15 @@
   "labels": [
     "dependencies"
   ],
+  "addLabels": [
+    "security",
+    "actions",
+    "major-update",
+    "java",
+    "gradle",
+    "container",
+    "test"
+  ],
   "vulnerabilityAlerts": {
     "labels": [
       "security",
