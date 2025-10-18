@@ -13,9 +13,9 @@
     ":automergeMinor",
     ":semanticCommits",
     ":rebaseStalePrs",
-    "mergeConfidence:all-badges"
+    "mergeConfidence:all-badges",
+    ":semanticCommitType(chore)"
   ],
-  "semanticCommitType": "build",
   "semanticCommitScope": "deps",
   "commitMessageLowerCase": "auto",
   "commitBody": "Signed-off-by: {{{gitAuthor}}}",
