@@ -1,28 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:best-practices", 
-    ":gitSignOff",
-    ":semanticCommits" 
+    "local>diggsweden/.github:renovate-base"
   ],
-  "semanticCommitType": "build", 
-  "semanticCommitScope": "deps",
-  "commitMessageLowerCase": "auto", 
-  "commitBody": "Signed-off-by: {{{gitAuthor}}}",
-  "packageRules": [
-    {
-      "matchManagers": ["github-actions"], 
-      "addLabels": ["actions"], 
-      "automerge": true,
-      "minimumReleaseAge": "4 days",
-      "groupName": "GitHub Actions updates",
-      "matchUpdateTypes": ["minor", "patch"] 
-    },
-    {
-      "matchManagers": ["github-actions"], 
-      "matchUpdateTypes": ["major"], 
-      "addLabels": ["actions", "major-update"], 
-      "groupName": "GitHub Actions major updates" 
-    }
+  "enabledManagers": [
+    "github-actions"
   ]
 }

@@ -48,6 +48,28 @@ These templates is the builtin ones but modified to remove 'chore(release):-line
 - minimal
 - default
 
+## Renovate Configuration
+
+This repository contains a shared Renovate base configuration that all DiggSweden projects extend.
+
+### renovate-base.json
+
+Centralized Renovate configuration providing:
+- **Standardized settings** across all projects (7-day minimum release age, weekend schedule, Europe/Stockholm timezone)
+- **Security presets** (OpenSSF Scorecard, vulnerability alerts)
+- **Automerge policies** (minor/patch updates after tests pass)
+- **GitHub Actions** digest pinning and grouping
+- **Semantic commits** with git sign-off (build(deps) format)
+
+Projects extend this base using:
+```json
+{
+  "extends": ["local>diggsweden/.github:renovate-base"]
+}
+```
+
+This ensures consistency while allowing project-specific overrides (managers, dependency grouping, etc.).
+
 ----
 
 ## License
