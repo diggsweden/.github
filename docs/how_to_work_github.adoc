@@ -1,6 +1,7 @@
 = Hur vi jobbar med Öppen Källkod på GitHub
 Digg Open Source Guild <ospo@digg.se>
-v0.2.1, {docdatetime}
+v0.3.0, {docdatetime}
+v0.3.0, {docdatetime}
 :description: A guide for working on Digg's GitHub spaces
 :toc:
 :toclevels: 4
@@ -395,3 +396,61 @@ Syftet är inte att dokumentera alla detaljinställningar i tabellen, men att ge
 
 CAUTION: Flera av de beskrivna inställningarna gäller inte om du använder privata repositories, då det kräver en betalplan för GitHub.
 
+== Om språk på plattformen (språklagen (2009:600))
+
+* Svenska är förvaltningsspråk hos myndigheter och språket ska vara "vårdat, enkelt och begripligt".
+* Gäller all myndighetskommunikation, oavsett kanal (dvs. även kodsamverkansplattformar som GitHub/GitLab).
+* Man får göra en pragmatisk tolkning för tekniska/internationella sammanhang/fackspråk.  
+
+**Svenska i första hand vid användarkommunikation, men engelska som fackspråk med kollegor ok.**
+
+Utgångspunkten är att tekniska termer och diskussioner kan vara på fackspråkstandard och områdets konventioner (engelska) men att sådant som riktar sig till svenska användare ska vara på svenska när möjligt.
+
+Observera att det här inte säger något om ett projekts policy - utan beskriver bara ramarna.
+En policy för ett projekt skulle mycket väl, som exempel, kunna bestämma att " vårt API ska vara på svenska", trots att det att ur språklagens tolking skulle vara ok att ha det på engelska.
+
+Som en guide för hur du kan tänka ges här ytterligare praktiska exempel:
+
+[cols="3,1,2", options="header"]
+|===
+| Situation | Språk | Motivering
+| Buggfix-diskussion utvecklare emellan | Engelska OK | Fackspråk
+| Kodgransknings-kommentarer | Engelska OK | Teknisk dokumentation
+| Teknisk arkitektur-diskussion | Svenska (+eng) | Teknik + beslut
+| Projektbeslut/policy | Svenska (+ eng.) | Verksamhetsbeslut
+| README | Svenska (+ eng.) | Allmän information
+| Issue/Ärende från svenskspråkig medborgare | Svenska | Myndighetskommunikation
+| Issue övrigt | Engelska OK | Internationell dialog
+| Bidrag övrigt | Engelska OK | Fackspråk
+| Bidrag (PR) från svenskspråkig medborgare | Svenska | Myndighetskommunikation
+| Programkod | Engelska OK | Fackspråk
+| API | Engelska OK | Fackspråk
+| Loggar | Engelska OK | Fackspråk
+|===
+
+
+=== Ytterligare exempel
+
+==== Svenska (obligatoriskt)
+
+* README-huvudsektion (parallellspråkighet om internationell)  
+* Användarguider och instruktioner (parallellspråkighet om internationell)  
+* Projektbeslut och policy (parallellspråkighet)  
+* Svar på frågor som kommer in på svenska  
+
+==== Engelska (tillåtet fackspråk och praxis)
+
+* Kod och kommentarer i kod  
+* Tekniska PR-diskussioner  
+* Commit-meddelanden (helst)  
+* Code review-kommentarer  
+* Teknisk API-dokumentation  
+* Internationell samverkan  
+
+==== Länkar
+
+* https://github.com/diggsweden[Digg:s GitHub] – (parallellespråkighet)
+* https://www.swedenconnect.se/[Sweden Connect teknisk dokumentation] – exempel på arkitektur/slutanvändardokumentation (parallellspråkighet)  
+* https://www.riksdagen.se/sv/dokument-lagar/dokument/svensk-forfattningssamling/spraklag-2009600_sfs-2009-600[Språklag (2009:600) | Sveriges riksdag]  
+
+---
