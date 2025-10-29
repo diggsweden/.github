@@ -1,6 +1,6 @@
 = Hur vi jobbar med Öppen Källkod på GitHub
 Digg Open Source Guild <ospo@digg.se>
-v0.2.0, {docdatetime}
+v0.2.1, {docdatetime}
 :description: A guide for working on Digg's GitHub spaces
 :toc:
 :toclevels: 4
@@ -294,6 +294,21 @@ Detta då till exempel https://www.esamverka.se/download/18.43a3add4188b9f2345a2
 +
 Vi har inte arbetat fram en formell guide och formen för detta än, det ligger på framtida agenda.
 Notera att detta redan sker i praktiken - Digg bidrar redan aktivt till Öppen Källkod och data genom upphandlingar och samarbeten med externa partners där vi uppmuntrar och kräver Öppen Källlkod. Bidrag nämns i våra interna riktlinjer.
+
+=== Licens-rubriker/headrar i REUSE/SPDX
+* Hur anger jag licens-rubriker korrekt med REUSE/SPDX - det finns flera vanliga konventioner?
++
+För själva licensdeklarationen finns det flera konventioner.
+
+Exempelvis:
+
+- <YEAR> <COPYRIGHTOWNER>
+- <YEAR> <GITHUBSPACE/PROJECTNAME>
+- <YEAR> The <projectname> Authors
+
+Digg rekommenderar `<YEAR> <COPYRIGHTOWNER>` för tydlighet.
+Det innebär, som exempel: `2025 Digg - Agency for Digital Government`
+Se även https://reuse.software/faq/[REUSE F.A.Q] för ytterligare information om licensheadrar.
 
 === Privata och publika projekt
 * Varför har vi (eller extern samarbetspartner) privata projekt på GitHub, är det inte en plattform för Öppen Källkod?
