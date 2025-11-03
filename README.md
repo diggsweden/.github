@@ -14,7 +14,8 @@ Contents:
 
 ## Docs:
 
-- docs/how_to_work_github.adoc (A document describing how to work on Digg's GitHub)
+- docs/how_to_work_github.adoc (How to work on Digg's GitHub)
+- [docs/release1.0.checklist.md](docs/release1.0.checklist.md) (Checklist for preparing a 1.0.0 release)
 
 
 - SECURITY.md (A general template for where to report Security Issues)
@@ -25,28 +26,7 @@ Contents:
 
 Note that these files are mostly taken from the general [Open Source Project Template-project](https://github.com/diggsweden/open-source-project-template) and any Issues should most likely go there directly.
 
-## Reusable Workflows 
 
-Some GitHub Workflows can be reused in other projects, see the '.github/workflows-folder.
-
-- CommitLint
-- DependencyAnalysis
-- LicenseLint
-- MegaLint - Lint Containers, scripts, code (to be deprecated use misc lint instead)
-- Misc Lint - Mise and Just lint setup 
-- Public Code Lint - Verify that the project has a valid public code yaml
-- OpenSSF-Scorecard - Projecthealth from a security perspective 
-- Versionbump and Changelog - generate a Changelog, in a commit Release, bump project version
-
-
-## GitCliff templates
-
-Git-Cliff is a changelog solution, with a few builtin templates. 
-These templates is the builtin ones but modified to remove 'chore(release):-lines from the output.
-
-- keepachangelog
-- minimal
-- default
 
 ## Renovate Configuration
 
@@ -69,6 +49,14 @@ Projects extend this base using:
 ```
 
 This ensures consistency while allowing project-specific overrides (managers, dependency grouping, etc.).
+
+## Reusable Workflows 
+
+Obsolete here. Have moved to reuseable-ci project.
+
+## GitCliff templates
+
+Obsolete here. Have moved to reuseable-ci project.
 
 ----
 
