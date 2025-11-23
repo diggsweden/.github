@@ -75,7 +75,7 @@
               egress-policy: ${{ inputs.egress-policy }}
         
           - name: Checkout repository
-            uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+            uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             with:
               fetch-depth: 0
               ref: ${{ inputs.branch }} 
@@ -103,7 +103,7 @@
               mvn $MAVEN_CLI_OPTS versions:set -DnewVersion="${TAG}" -DgenerateBackupPoms=false -DskipTests
           
           - name: Fetch git-cliff templates
-            uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+            uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             with:
               repository: diggsweden/.github
               path: .github-templates
