@@ -49,13 +49,9 @@ Projects extend this base using:
 
 This ensures consistency while allowing project-specific overrides (managers, dependency grouping, etc.).
 
-## Reusable Workflows 
+## Reusable Workflows and GitCliff templates
 
-Obsolete here. Have moved to reuseable-ci project.
-
-## GitCliff templates
-
-Obsolete here. Have moved to reuseable-ci project.
+Obsolete here in this repo. Have moved to reuseable-ci project.
 
 ----
 
